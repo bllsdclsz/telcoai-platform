@@ -22,6 +22,31 @@ services:
       timeout: 3s
       retries: 10
 
+  redis:
+    image: redis:8.8.3-alpine
+    ports: ["6379:6379"]
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Serves online features over HTTP; reads the registry written by `churn features`.
+  feature-server:
+    image: quay.io/feastdev/feature-server:0.66.0
+    command: ["feast", "-c", "/repo/churn/feature_repo", "serve", "-h", "0.0.0.0", "-p", "6566"]
+    environment:
+      FEAST_REDIS_CONNECTION: redis:6379
+    ports: ["6566:6566"]
+    volumes:
+      - ./churn/feature_repo:/repo/churn/feature_repo:ro
+      - ./data/feast:/repo/data/feast:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles: [serve]
+
   # One-shot: hand the bind-mounted prediction log dir to the API's non-root user (uid 10001).
   predictions-init:
     image: busybox:1.38.0
@@ -38,6 +63,7 @@ services:
       CHURN_MLFLOW_TRACKING_URI: http://mlflow:5000
       CHURN_SERVING_ALIAS: ${CHURN_SERVING_ALIAS:-prod}
       CHURN_PREDICTION_LOG_DIR: /predictions
+      CHURN_FEATURE_SERVER_URL: http://feature-server:6566
     ports: ["8000:8000"]
     # Bind mount so the drift monitoring flow on the host can read the prediction log.
     volumes: ["./data/predictions:/predictions"]
@@ -79,4 +105,5 @@ services:
 volumes:
   mlflow-data:
   prometheus-data:
+  redis-data:
   grafana-data:

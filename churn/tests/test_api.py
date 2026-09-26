@@ -1,4 +1,5 @@
 import json
+import urllib.error
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,7 @@ from fastapi.testclient import TestClient
 from churn.config import Settings
 from churn.schema import FEATURE_COLUMNS
 from churn.serve.app import CustomerFeatures, LoadedModel, create_app
+from churn.serve.features import OnlineFeatures, parse_response
 from churn.train import build_pipeline
 
 from .conftest import make_customers
@@ -116,3 +118,80 @@ def test_predictions_are_logged_for_drift_monitoring(client: TestClient, log_dir
     assert last["model_version"] == "7"
     assert 0 <= last["churn_probability"] <= 1
     assert set(FEATURE_COLUMNS) <= set(last)
+
+
+# --- /predict/by-id (features from the online store) ---
+
+
+# Real response shape of the Feast feature server (see churn.serve.features.parse_response).
+def feast_payload(records: dict[str, dict[str, Any] | None]) -> dict[str, Any]:
+    names = ["customerID", *FEATURE_COLUMNS]
+    results = [
+        {
+            "values": [
+                cid if n == "customerID" else (r or {}).get(n) for cid, r in records.items()
+            ],
+            "statuses": ["PRESENT"] * len(records),
+        }
+        for n in names
+    ]
+    return {"metadata": {"feature_names": names}, "results": results}
+
+
+class FakeFeatureClient:
+    def __init__(self, known: dict[str, dict[str, Any]], fail: bool = False) -> None:
+        self.known, self.fail = known, fail
+
+    def get(self, customer_ids: list[str]) -> OnlineFeatures:
+        if self.fail:
+            raise urllib.error.URLError("connection refused")
+        payload = feast_payload({cid: self.known.get(cid) for cid in customer_ids})
+        return parse_response(payload, customer_ids)
+
+
+def by_id_client(feature_client: Any) -> TestClient:
+    df = make_customers()
+    model = build_pipeline({"n_estimators": 20}, seed=0).fit(df[FEATURE_COLUMNS], df["Churn"])
+    app = create_app(
+        loader=lambda: LoadedModel(model=model, version="7"),
+        settings=Settings(prediction_log_dir=None),
+        feature_client=feature_client,
+    )
+    return TestClient(app)
+
+
+KNOWN = {"A-1": customer_payload(), "B-2": customer_payload(Contract="Two year", tenure=60)}
+
+
+def test_predict_by_id_matches_predict_with_same_features() -> None:
+    with by_id_client(FakeFeatureClient(KNOWN)) as c:
+        by_id = c.post("/predict/by-id", json={"customer_ids": ["B-2", "A-1", "B-2"]}).json()
+        direct = c.post("/predict", json={"customers": [KNOWN["B-2"], KNOWN["A-1"]]}).json()
+
+    assert [p["customer_id"] for p in by_id["predictions"]] == ["B-2", "A-1"]
+    assert [p["churn_probability"] for p in by_id["predictions"]] == [
+        p["churn_probability"] for p in direct["predictions"]
+    ]
+
+
+def test_predict_by_id_unknown_customer_is_404() -> None:
+    with by_id_client(FakeFeatureClient(KNOWN)) as c:
+        resp = c.post("/predict/by-id", json={"customer_ids": ["A-1", "NOPE"]})
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == {"missing_customer_ids": ["NOPE"]}
+
+
+def test_predict_by_id_feature_server_down_is_503() -> None:
+    with by_id_client(FakeFeatureClient(KNOWN, fail=True)) as c:
+        assert c.post("/predict/by-id", json={"customer_ids": ["A-1"]}).status_code == 503
+
+
+def test_predict_by_id_without_feature_store_is_503() -> None:
+    with by_id_client(None) as c:
+        assert c.post("/predict/by-id", json={"customer_ids": ["A-1"]}).status_code == 503
+
+
+def test_predict_by_id_rejects_invalid_store_data() -> None:
+    bad = {"A-1": customer_payload(Contract="Lifetime")}
+    with by_id_client(FakeFeatureClient(bad)) as c:
+        assert c.post("/predict/by-id", json={"customer_ids": ["A-1"]}).status_code == 502

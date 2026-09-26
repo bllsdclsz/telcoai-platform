@@ -9,10 +9,10 @@ from typing import Any, Literal
 import mlflow
 import mlflow.sklearn
 import pandas as pd
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from mlflow import MlflowClient
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from churn.config import Settings
 from churn.schema import (
@@ -25,6 +25,7 @@ from churn.schema import (
     PaymentMethod,
     YesNo,
 )
+from churn.serve.features import FeatureServerClient
 from churn.serve.monitoring import Metrics, PredictionLog
 
 DECISION_THRESHOLD = 0.5
@@ -66,6 +67,19 @@ class PredictResponse(BaseModel):
     predictions: list[Prediction]
 
 
+class PredictByIdRequest(BaseModel):
+    customer_ids: list[str] = Field(min_length=1, max_length=1000)
+
+
+class CustomerPrediction(Prediction):
+    customer_id: str
+
+
+class PredictByIdResponse(BaseModel):
+    model_version: str
+    predictions: list[CustomerPrediction]
+
+
 @dataclass(frozen=True)
 class LoadedModel:
     model: Any  # anything with sklearn's predict_proba
@@ -83,8 +97,11 @@ def load_registered_model(settings: Settings | None = None) -> LoadedModel:
 def create_app(
     loader: Callable[[], LoadedModel] = load_registered_model,
     settings: Settings | None = None,
+    feature_client: FeatureServerClient | None = None,
 ) -> FastAPI:
     settings = settings or Settings()
+    if feature_client is None and settings.feature_server_url:
+        feature_client = FeatureServerClient(settings.feature_server_url)
     metrics = Metrics()
     prediction_log = (
         PredictionLog(settings.prediction_log_dir) if settings.prediction_log_dir else None
@@ -122,20 +139,53 @@ def create_app(
     def prometheus_metrics() -> Response:
         return Response(generate_latest(metrics.registry), media_type=CONTENT_TYPE_LATEST)
 
+    def score(customers: list[CustomerFeatures], loaded: LoadedModel) -> list[Prediction]:
+        records = [c.model_dump() for c in customers]
+        proba = loaded.model.predict_proba(pd.DataFrame(records)[FEATURE_COLUMNS])[:, 1]
+        metrics.observe_predictions(proba, DECISION_THRESHOLD)
+        if prediction_log:
+            prediction_log.write(records, proba, loaded.version)
+        return [
+            Prediction(churn_probability=float(p), will_churn=bool(p >= DECISION_THRESHOLD))
+            for p in proba
+        ]
+
     @app.post("/predict")
     def predict(body: PredictRequest, request: Request) -> PredictResponse:
         loaded: LoadedModel = request.app.state.loaded
-        customers = [c.model_dump() for c in body.customers]
-        X = pd.DataFrame(customers)[FEATURE_COLUMNS]
-        proba = loaded.model.predict_proba(X)[:, 1]
-        metrics.observe_predictions(proba, DECISION_THRESHOLD)
-        if prediction_log:
-            prediction_log.write(customers, proba, loaded.version)
         return PredictResponse(
+            model_version=loaded.version, predictions=score(body.customers, loaded)
+        )
+
+    @app.post(
+        "/predict/by-id",
+        responses={
+            404: {"description": "Unknown customer IDs"},
+            503: {"description": "No features"},
+        },
+    )
+    def predict_by_id(body: PredictByIdRequest, request: Request) -> PredictByIdResponse:
+        """Score customers by ID with features from the online feature store."""
+        if feature_client is None:
+            raise HTTPException(503, "feature store not configured (CHURN_FEATURE_SERVER_URL)")
+        ids = list(dict.fromkeys(body.customer_ids))  # de-duplicate, keep order
+        try:
+            online = feature_client.get(ids)
+        except OSError as exc:  # connection errors, timeouts, HTTP errors
+            raise HTTPException(503, f"feature server unavailable: {exc}") from exc
+        if online.missing:
+            raise HTTPException(404, {"missing_customer_ids": online.missing})
+        try:
+            customers = [CustomerFeatures(**online.found[cid]) for cid in ids]
+        except ValidationError as exc:
+            raise HTTPException(502, f"invalid features from feature store: {exc}") from exc
+
+        loaded: LoadedModel = request.app.state.loaded
+        return PredictByIdResponse(
             model_version=loaded.version,
             predictions=[
-                Prediction(churn_probability=float(p), will_churn=bool(p >= DECISION_THRESHOLD))
-                for p in proba
+                CustomerPrediction(customer_id=cid, **p.model_dump())
+                for cid, p in zip(ids, score(customers, loaded), strict=True)
             ],
         )
 

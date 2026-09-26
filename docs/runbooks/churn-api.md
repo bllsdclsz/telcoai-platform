@@ -32,7 +32,8 @@ Dashboard: Grafana → TelcoAI → **Churn API** · Metrics: `http://<host>:8000
 
 1. Check the logs for the traceback: `sh scripts/compose.sh logs --tail 200 churn-api`.
 2. If the errors started after a promotion, roll back (see above).
-3. If they come from specific inputs, capture a failing payload, add it as a test, and fix it.
+3. **Only `/predict/by-id` fails with 503:** the Feast feature server or Redis is down (`make ps`). `/predict` with full records keeps working. Restart with `make serve-docker`. If Redis lost its data, republish with `make features`.
+4. If they come from specific inputs, capture a failing payload, add it as a test, and fix it.
 
 ## ChurnPredictionShift
 

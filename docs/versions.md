@@ -22,6 +22,7 @@ Policy: use the latest stable release of every tool, locked in `uv.lock` (Python
 | httpx2               | 2.13.1                                                    | Starlette's test client has deprecated `httpx` in favour of `httpx2`              |
 | MLflow server image  | `ghcr.io/mlflow/mlflow:v3.16.1`                           |                                                                                   |
 | Prometheus / Grafana images | `prom/prometheus:v3.15.0` / `grafana/grafana:13.2.2` | |
+| Redis / Feast feature server images | `redis:8.8.3-alpine` / `quay.io/feastdev/feature-server:0.66.0` | Feast images moved from Docker Hub (last: 0.46) to Quay |
 | Init container image | `busybox:1.38.0` | Hands the prediction log bind mount to the API's non-root user |
 | Base image           | `python:3.14.7-slim`                                      |                                                                                   |
 | GitHub Actions       | checkout v7.0.1, setup-uv v10.2.0, setup-buildx v4.4.1, build-push v7.4.0 | Pinned by commit SHA; Dependabot opens update PRs weekly |                                                                                   |
