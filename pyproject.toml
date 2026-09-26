@@ -7,7 +7,7 @@ dependencies = ["churn[pipeline]"]
 
 [dependency-groups]
 dev = [
-    "httpx>=0.28.1",
+    "httpx2>=2.13.1",
     "mypy>=2.3.1",
     "pre-commit>=4.6.2",
     "pytest>=9.1.1",
@@ -29,7 +29,14 @@ target-version = "py314"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "N", "RUF"]
-ignore = ["N815"]  # Telco dataset uses camelCase column names (e.g. MonthlyCharges)
+ignore = [
+    "N815",  # Telco dataset uses camelCase column names (e.g. MonthlyCharges)
+    "N803",  # X / X_train: standard ML naming
+    "N806",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["churn"]
 
 [tool.mypy]
 python_version = "3.14"
