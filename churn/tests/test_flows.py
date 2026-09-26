@@ -1,14 +1,21 @@
+import json
 import shutil
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
 
+import mlflow
 import pytest
 from mlflow import MlflowClient
 from prefect.testing.utilities import prefect_test_harness
 
 from churn.config import Settings
-from churn.flows import training_flow
+from churn.flows import drift_monitoring_flow, training_flow
+from churn.schema import FEATURE_COLUMNS
+from churn.simulate import shift
 from churn.train import QualityGateError, file_md5
+
+from .conftest import make_customers
 
 FAST = {"n_estimators": 20}
 
@@ -57,3 +64,49 @@ def test_file_md5_matches_dvc(tmp_path: Path) -> None:
         pytest.skip("dataset not pulled (dvc pull)")
     copy = shutil.copy(data, tmp_path / "copy.csv")
     assert f"md5: {file_md5(Path(copy))}" in dvc_file.read_text()
+
+
+def log_predictions(settings: Settings, customers) -> None:
+    assert settings.prediction_log_dir is not None
+    settings.prediction_log_dir.mkdir(parents=True, exist_ok=True)
+    rows = customers[FEATURE_COLUMNS].to_dict(orient="records")
+    now = datetime.now(UTC).isoformat()
+    lines = [json.dumps({**r, "scored_at": now}, default=int) for r in rows]
+    (settings.prediction_log_dir / "predictions-today.jsonl").write_text("\n".join(lines) + "\n")
+
+
+@pytest.fixture
+def monitor_settings(flow_settings: Settings, tmp_path: Path) -> Settings:
+    return flow_settings.model_copy(update={"prediction_log_dir": tmp_path / "predictions"})
+
+
+def test_monitoring_gives_no_verdict_on_too_little_traffic(monitor_settings: Settings) -> None:
+    log_predictions(monitor_settings, make_customers(n=50, seed=1))
+    assert drift_monitoring_flow(settings=monitor_settings) is None
+
+
+def test_monitoring_without_drift_does_not_retrain(monitor_settings: Settings) -> None:
+    log_predictions(monitor_settings, make_customers(n=300, seed=1))
+
+    result = drift_monitoring_flow(settings=monitor_settings)
+
+    assert result is not None and not result.dataset_drift
+    assert MlflowClient().search_registered_models() == []
+
+
+def test_monitoring_on_drift_logs_report_and_retrains(monitor_settings: Settings) -> None:
+    log_predictions(monitor_settings, shift(make_customers(n=300, seed=1)))
+
+    result = drift_monitoring_flow(settings=monitor_settings)
+
+    assert result is not None and result.dataset_drift
+    (run,) = mlflow.search_runs(
+        experiment_names=[monitor_settings.monitoring_experiment_name], output_format="list"
+    )
+    assert run.data.tags["dataset_drift"] == "true"
+    assert run.data.metrics["drift_share"] == result.drift_share
+    artifacts = [a.path for a in MlflowClient().list_artifacts(run.info.run_id)]
+    assert any(a.endswith(".html") for a in artifacts)
+    # Retraining ran and the candidate landed in staging, never prod.
+    aliases = MlflowClient().get_registered_model(monitor_settings.registered_model_name).aliases
+    assert set(aliases) == {"dev", "staging"}
