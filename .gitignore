@@ -8,3 +8,5 @@ mlflow.db
 mlruns/
 mlartifacts/
 .env
+data/predictions/
+data/reports/

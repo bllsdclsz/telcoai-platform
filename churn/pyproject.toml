@@ -12,6 +12,7 @@ dependencies = [
     # Capped <3 by feast 0.66 (see docs/versions.md)
     "pandas>=2.3.3",
     "pandera>=0.33.1",
+    "prometheus-client>=0.24.1",
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15.0",
     "scikit-learn>=1.9.1",

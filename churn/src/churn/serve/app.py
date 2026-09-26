@@ -1,6 +1,7 @@
 """Real-time churn scoring API. Serves the registered model version behind an alias."""
 
-from collections.abc import AsyncIterator, Callable
+import time
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any, Literal
@@ -8,8 +9,9 @@ from typing import Any, Literal
 import mlflow
 import mlflow.sklearn
 import pandas as pd
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from mlflow import MlflowClient
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, Field
 
 from churn.config import Settings
@@ -23,6 +25,7 @@ from churn.schema import (
     PaymentMethod,
     YesNo,
 )
+from churn.serve.monitoring import Metrics, PredictionLog
 
 DECISION_THRESHOLD = 0.5
 
@@ -77,23 +80,57 @@ def load_registered_model(settings: Settings | None = None) -> LoadedModel:
     return LoadedModel(mlflow.sklearn.load_model(f"models:/{name}@{alias}"), str(version))
 
 
-def create_app(loader: Callable[[], LoadedModel] = load_registered_model) -> FastAPI:
+def create_app(
+    loader: Callable[[], LoadedModel] = load_registered_model,
+    settings: Settings | None = None,
+) -> FastAPI:
+    settings = settings or Settings()
+    metrics = Metrics()
+    prediction_log = (
+        PredictionLog(settings.prediction_log_dir) if settings.prediction_log_dir else None
+    )
+
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.loaded = loader()
+        metrics.model_info.labels(app.state.loaded.version, settings.serving_alias).set(1)
         yield
 
     app = FastAPI(title="Telco Churn API", version="0.1.0", lifespan=lifespan)
+
+    @app.middleware("http")
+    async def record_request(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        start = time.perf_counter()
+        status = 500
+        try:
+            response = await call_next(request)
+            status = response.status_code
+            return response
+        finally:
+            # Route template, not the raw path, keeps label cardinality bounded.
+            route = getattr(request.scope.get("route"), "path", "unmatched")
+            metrics.latency.labels(route, request.method).observe(time.perf_counter() - start)
+            metrics.requests.labels(route, request.method, str(status)).inc()
 
     @app.get("/health")
     def health(request: Request) -> dict[str, str]:
         return {"status": "ok", "model_version": request.app.state.loaded.version}
 
+    @app.get("/metrics", include_in_schema=False)
+    def prometheus_metrics() -> Response:
+        return Response(generate_latest(metrics.registry), media_type=CONTENT_TYPE_LATEST)
+
     @app.post("/predict")
     def predict(body: PredictRequest, request: Request) -> PredictResponse:
         loaded: LoadedModel = request.app.state.loaded
-        X = pd.DataFrame([c.model_dump() for c in body.customers])[FEATURE_COLUMNS]
+        customers = [c.model_dump() for c in body.customers]
+        X = pd.DataFrame(customers)[FEATURE_COLUMNS]
         proba = loaded.model.predict_proba(X)[:, 1]
+        metrics.observe_predictions(proba, DECISION_THRESHOLD)
+        if prediction_log:
+            prediction_log.write(customers, proba, loaded.version)
         return PredictResponse(
             model_version=loaded.version,
             predictions=[
