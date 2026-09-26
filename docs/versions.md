@@ -18,10 +18,13 @@ Policy: use the latest stable release of every tool, locked in `uv.lock` (Python
 | DVC                  | 3.67.1                                                    | Pipeline extra                                                                    |
 | Optuna               | 5.0.0                                                     | Pipeline extra                                                                    |
 | pytest / ruff / mypy | 9.1.1 / 0.16.9 / 2.3.1                                    |                                                                                   |
+| prometheus-client | 0.24.1 | **Held back:** feast 0.66 requires `prometheus-client<0.25` (latest is 0.26.0) |
 | httpx2               | 2.13.1                                                    | Starlette's test client has deprecated `httpx` in favour of `httpx2`              |
 | MLflow server image  | `ghcr.io/mlflow/mlflow:v3.16.1`                           |                                                                                   |
+| Prometheus / Grafana images | `prom/prometheus:v3.15.0` / `grafana/grafana:13.2.2` | |
+| Init container image | `busybox:1.38.0` | Hands the prediction log bind mount to the API's non-root user |
 | Base image           | `python:3.14.7-slim`                                      |                                                                                   |
-| GitHub Actions       | checkout v7, setup-uv v10, setup-buildx v4, build-push v7 |                                                                                   |
+| GitHub Actions       | checkout v7.0.1, setup-uv v10.2.0, setup-buildx v4.4.1, build-push v7.4.0 | Pinned by commit SHA; Dependabot opens update PRs weekly |                                                                                   |
 
 ## Upgrading
 
@@ -29,4 +32,4 @@ Policy: use the latest stable release of every tool, locked in `uv.lock` (Python
 uv lock --upgrade && make check
 ```
 
-Re-check the pandas cap whenever Feast releases a new version.
+Feast holds back two packages (pandas, prometheus-client). Re-check both caps whenever Feast releases a new version.

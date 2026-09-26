@@ -1,0 +1,46 @@
+# SLOs for the churn API: availability, p95 latency < 300 ms, 5xx error rate < 1%.
+groups:
+  - name: churn-api
+    rules:
+      - record: churn:predict_latency_seconds:p95_5m
+        expr: histogram_quantile(0.95, sum by (le) (rate(churn_http_request_duration_seconds_bucket{route="/predict"}[5m])))
+      - record: churn:predict_error_ratio:5m
+        expr: |
+          (sum(rate(churn_http_requests_total{route="/predict",status=~"5.."}[5m])) or vector(0))
+          / sum(rate(churn_http_requests_total{route="/predict"}[5m]))
+      - record: churn:predicted_churn_ratio:1h
+        expr: sum(rate(churn_predictions_total{outcome="churn"}[1h])) / sum(rate(churn_predictions_total[1h]))
+
+      - alert: ChurnApiDown
+        expr: up{job="churn-api"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: Churn API is not responding to scrapes
+          runbook_url: https://github.com/bllsdclsz/telcoai-platform/blob/main/docs/runbooks/churn-api.md#churnapidown
+
+      - alert: ChurnApiHighLatency
+        expr: churn:predict_latency_seconds:p95_5m > 0.3
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "p95 /predict latency {{ $value | humanizeDuration }} is above the 300 ms SLO"
+          runbook_url: https://github.com/bllsdclsz/telcoai-platform/blob/main/docs/runbooks/churn-api.md#churnapihighlatency
+
+      - alert: ChurnApiHighErrorRate
+        expr: churn:predict_error_ratio:5m > 0.01
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of /predict requests fail (SLO < 1%)"
+          runbook_url: https://github.com/bllsdclsz/telcoai-platform/blob/main/docs/runbooks/churn-api.md#churnapihigherrorrate
+
+      # Real-time proxy for drift: the model predicts far more churners than the training base
+      # rate (26.5%). The Evidently drift flow gives the per-feature diagnosis.
+      - alert: ChurnPredictionShift
+        expr: churn:predicted_churn_ratio:1h > 0.45 and sum(increase(churn_predictions_total[1h])) > 200
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of scored customers predicted to churn (base rate 26.5%)"
+          runbook_url: https://github.com/bllsdclsz/telcoai-platform/blob/main/docs/runbooks/churn-api.md#churnpredictionshift

@@ -22,6 +22,13 @@ services:
       timeout: 3s
       retries: 10
 
+  # One-shot: hand the bind-mounted prediction log dir to the API's non-root user (uid 10001).
+  predictions-init:
+    image: busybox:1.38.0
+    command: ["chown", "10001", "/predictions"]
+    volumes: ["./data/predictions:/predictions"]
+    profiles: [serve]
+
   churn-api:
     build:
       context: .
@@ -30,12 +37,46 @@ services:
     environment:
       CHURN_MLFLOW_TRACKING_URI: http://mlflow:5000
       CHURN_SERVING_ALIAS: ${CHURN_SERVING_ALIAS:-prod}
+      CHURN_PREDICTION_LOG_DIR: /predictions
     ports: ["8000:8000"]
+    # Bind mount so the drift monitoring flow on the host can read the prediction log.
+    volumes: ["./data/predictions:/predictions"]
     depends_on:
       mlflow:
         condition: service_healthy
+      predictions-init:
+        condition: service_completed_successfully
     # Needs a model behind the serving alias: run `make train promote` first.
+    profiles: [serve]
+
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+    ports: ["9090:9090"]
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    profiles: [serve]
+
+  grafana:
+    image: grafana/grafana:13.2.2
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/churn-api.json
+    ports: ["3000:3000"]
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on: [prometheus]
     profiles: [serve]
 
 volumes:
   mlflow-data:
+  prometheus-data:
+  grafana-data:
