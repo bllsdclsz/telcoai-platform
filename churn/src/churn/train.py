@@ -1,5 +1,6 @@
 """Train a churn model, track it in MLflow and register it if it passes the quality gate."""
 
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -80,6 +81,15 @@ def evaluate(
     }
 
 
+def file_md5(path: Path) -> str:
+    """Same hash DVC records in ``<file>.dvc``, linking each run to an exact data version."""
+    digest = hashlib.md5(usedforsecurity=False)
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def train(
     settings: Settings,
     params: dict[str, Any] | None = None,
@@ -100,6 +110,7 @@ def train(
     mlflow.set_experiment(settings.experiment_name)
     with mlflow.start_run() as run:
         mlflow.log_params({**params, "seed": settings.random_seed, "test_size": settings.test_size})
+        mlflow.set_tag("data_md5", file_md5(data_path))
         mlflow.log_input(
             from_pandas(df, source=str(data_path), name="telco_churn", targets=TARGET),
             context="training",
