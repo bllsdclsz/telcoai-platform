@@ -1,4 +1,4 @@
-.PHONY: install lint test check mlflow download train promote serve up serve-docker down
+.PHONY: install lint test check mlflow download data train pipeline promote serve up serve-docker down
 
 export MLFLOW_DISABLE_AGENT_HINT := 1
 COMPOSE := sh scripts/compose.sh
@@ -25,6 +25,12 @@ download:
 
 train:
 	uv run churn train
+
+pipeline:           ## Prefect flow: fetch -> train + gate -> promote to staging
+	uv run churn pipeline
+
+data:               ## pull the versioned dataset (falls back to download)
+	uv run dvc pull || uv run churn download
 
 promote:            ## make promote FROM=dev TO=prod
 	uv run churn promote --from $(or $(FROM),dev) --to $(or $(TO),prod)
