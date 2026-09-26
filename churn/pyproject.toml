@@ -24,7 +24,7 @@ dependencies = [
 pipeline = [
     "dvc>=3.67.1",
     "evidently>=0.7.23",
-    "feast>=0.66.0",
+    "feast[redis]>=0.66.0",
     "optuna>=5.0.0",
     "prefect>=3.8.6",
 ]
