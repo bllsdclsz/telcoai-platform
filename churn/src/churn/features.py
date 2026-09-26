@@ -22,7 +22,7 @@ ENGINEERED_COLUMNS = ["avg_monthly_spend", "num_addons", "is_new_customer"]
 class FeatureEngineer(TransformerMixin, BaseEstimator):
     """Derives business features from the raw customer record (stateless)."""
 
-    def fit(self, X: pd.DataFrame, y: object = None) -> "FeatureEngineer":
+    def fit(self, X: pd.DataFrame, y: object = None) -> FeatureEngineer:
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:

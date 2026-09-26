@@ -10,7 +10,7 @@ from churn.schema import TARGET, CustomerSchema
 
 def download(url: str, dest: Path) -> Path:
     dest.parent.mkdir(parents=True, exist_ok=True)
-    urllib.request.urlretrieve(url, dest)  # noqa: S310 - fixed, trusted URL from config
+    urllib.request.urlretrieve(url, dest)
     return dest
 
 

@@ -1,4 +1,4 @@
-"""Command line entry point: ``churn download | train | serve``."""
+"""Command line entry point: ``churn download | train | promote | serve``."""
 
 import argparse
 import json
@@ -11,9 +11,12 @@ def main(argv: list[str] | None = None) -> None:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("download", help="download the raw Telco churn dataset")
     sub.add_parser("train", help="train, evaluate and register a model")
-    serve = sub.add_parser("serve", help="run the scoring API")
-    serve.add_argument("--host", default="127.0.0.1")
-    serve.add_argument("--port", type=int, default=8000)
+    promote_cmd = sub.add_parser("promote", help="move a model version between aliases")
+    promote_cmd.add_argument("--from", dest="source", required=True, help="e.g. dev, staging")
+    promote_cmd.add_argument("--to", dest="target", required=True, help="e.g. staging, prod")
+    serve_cmd = sub.add_parser("serve", help="run the scoring API")
+    serve_cmd.add_argument("--host", default="127.0.0.1")
+    serve_cmd.add_argument("--port", type=int, default=8000)
     args = parser.parse_args(argv)
 
     settings = Settings()
@@ -32,6 +35,11 @@ def main(argv: list[str] | None = None) -> None:
                 "metrics": result.metrics,
             }
             print(json.dumps(summary, indent=2))
+        case "promote":
+            from churn.registry import promote
+
+            version = promote(settings, args.source, args.target)
+            print(f"{settings.registered_model_name} v{version}: {args.source} -> {args.target}")
         case "serve":
             import uvicorn
 
