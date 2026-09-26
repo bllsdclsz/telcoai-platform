@@ -1,6 +1,7 @@
 .PHONY: install lint test check mlflow download train promote serve up serve-docker down
 
 export MLFLOW_DISABLE_AGENT_HINT := 1
+COMPOSE := sh scripts/compose.sh
 
 install:            ## create .venv with all packages and dev tools
 	uv sync
@@ -32,10 +33,10 @@ serve:
 	uv run churn serve
 
 up:                 ## MLflow in Docker
-	docker compose up -d mlflow
+	$(COMPOSE) up -d mlflow
 
 serve-docker:       ## churn API in Docker (needs a model behind the prod alias)
-	docker compose --profile serve up -d --build churn-api
+	$(COMPOSE) --profile serve up -d --build churn-api
 
 down:
-	docker compose --profile serve down
+	$(COMPOSE) --profile serve down
