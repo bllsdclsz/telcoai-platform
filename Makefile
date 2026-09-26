@@ -1,4 +1,4 @@
-.PHONY: install lint test check mlflow download data train pipeline promote serve up serve-docker down
+.PHONY: install lint test check mlflow download data train pipeline promote serve monitor simulate demo-drift up serve-docker ps down
 
 export MLFLOW_DISABLE_AGENT_HINT := 1
 COMPOSE := sh scripts/compose.sh
@@ -38,11 +38,25 @@ promote:            ## make promote FROM=dev TO=prod
 serve:
 	uv run churn serve
 
+monitor:            ## Prefect drift check on recent predictions; retrains on drift
+	uv run churn monitor
+
+simulate:           ## normal traffic to the API (add DRIFT=1 for the shift scenario)
+	uv run churn simulate --n $(or $(N),300) $(if $(DRIFT),--drift)
+
+demo-drift:         ## normal traffic -> drifted traffic -> drift check -> retrain to staging
+	uv run churn simulate --n 300
+	uv run churn simulate --n 600 --drift --seed 1
+	uv run churn monitor
+
 up:                 ## MLflow in Docker
 	$(COMPOSE) up -d mlflow
 
-serve-docker:       ## churn API in Docker (needs a model behind the prod alias)
-	$(COMPOSE) --profile serve up -d --build churn-api
+serve-docker:       ## API + Prometheus (:9090) + Grafana (:3000) in Docker; needs a prod model
+	$(COMPOSE) --profile serve up -d --build
+
+ps:
+	$(COMPOSE) --profile serve ps
 
 down:
 	$(COMPOSE) --profile serve down

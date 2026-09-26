@@ -27,6 +27,16 @@ class Settings(BaseSettings):
     # Quality gate: a model below this ROC AUC is never registered.
     min_roc_auc: float = 0.80
 
+    # Serving: where scored requests are logged for drift monitoring (None disables logging).
+    prediction_log_dir: Path | None = Path("data/predictions")
+    # Drift: a column drifts when its distance exceeds drift_threshold; the dataset drifts when
+    # at least drift_share of the columns do. Fewer than drift_min_rows predictions -> no verdict.
+    drift_threshold: float = 0.1
+    drift_share: float = 0.25
+    drift_min_rows: int = 200
+    drift_window_days: int = 7
+    monitoring_experiment_name: str = "telco-churn-monitoring"
+
     @property
     def raw_data_path(self) -> Path:
         return self.data_dir / "raw" / "telco_churn.csv"
