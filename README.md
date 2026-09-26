@@ -20,6 +20,13 @@ make promote FROM=dev TO=prod
 make serve            # API at http://127.0.0.1:8000/docs
 ```
 
+Full stack in Docker (MLflow, Redis + Feast feature server, API, Prometheus, Grafana):
+
+```bash
+make up data train promote features serve-docker
+make demo-drift       # simulated drift -> automatic retrain to staging
+```
+
 ## Engineering standards
 
 - **Reproducible:** Python and every dependency pinned in `uv.lock`; seeded training; data and parameters logged per run.

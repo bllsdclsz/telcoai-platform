@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     # Quality gate: a model below this ROC AUC is never registered.
     min_roc_auc: float = 0.80
 
+    # Feature store: Feast repo, and the feature server the API calls for /predict/by-id.
+    feature_repo: Path = Path("churn/feature_repo")
+    feature_server_url: str | None = None
+
     # Serving: where scored requests are logged for drift monitoring (None disables logging).
     prediction_log_dir: Path | None = Path("data/predictions")
     # Drift: a column drifts when its distance exceeds drift_threshold; the dataset drifts when
@@ -40,3 +44,7 @@ class Settings(BaseSettings):
     @property
     def raw_data_path(self) -> Path:
         return self.data_dir / "raw" / "telco_churn.csv"
+
+    @property
+    def offline_features_path(self) -> Path:
+        return self.data_dir / "feast" / "customer_features.parquet"

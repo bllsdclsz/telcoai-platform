@@ -20,6 +20,8 @@ Gender = Literal["Male", "Female"]
 
 ID_COLUMN = "customerID"
 TARGET = "Churn"
+# Feast feature service the model reads (see churn.feature_store).
+FEATURE_SERVICE = "churn_model"
 
 CATEGORY_VALUES: dict[str, tuple[str, ...]] = {
     "gender": get_args(Gender),
