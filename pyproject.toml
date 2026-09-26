@@ -1,0 +1,43 @@
+[project]
+name = "telcoai-platform"
+version = "0.1.0"
+description = "Portfolio ML/LLMOps platform: churn MLOps pipeline, multilingual RAG assistant, IaC/GitOps."
+requires-python = ">=3.14,<3.15"
+dependencies = ["churn[pipeline]"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "mypy>=2.3.1",
+    "pre-commit>=4.6.2",
+    "pytest>=9.1.1",
+    "ruff>=0.16.9",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["churn"]
+
+[tool.uv.sources]
+churn = { workspace = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "N", "RUF"]
+ignore = ["N815"]  # Telco dataset uses camelCase column names (e.g. MonthlyCharges)
+
+[tool.mypy]
+python_version = "3.14"
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+testpaths = ["churn/tests"]
+addopts = "-ra"
+filterwarnings = ["ignore::DeprecationWarning", "ignore::SyntaxWarning"]

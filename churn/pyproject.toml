@@ -1,0 +1,36 @@
+[project]
+name = "churn"
+version = "0.1.0"
+description = "Telco customer churn prediction: training pipeline, model registry and serving API."
+readme = "README.md"
+authors = [{ name = "bllsdclsz", email = "51716990+bllsdclsz@users.noreply.github.com" }]
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "fastapi>=0.141.1",
+    "lightgbm>=4.7.0",
+    "mlflow>=3.16.1",
+    # Capped <3 by feast 0.66 (see docs/versions.md)
+    "pandas>=2.3.3",
+    "pandera>=0.33.1",
+    "pydantic>=2.13.5",
+    "pydantic-settings>=2.15.0",
+    "scikit-learn>=1.9.1",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[project.optional-dependencies]
+# Orchestration, feature store, drift and data versioning; not needed in the serving image.
+pipeline = [
+    "dvc>=3.67.1",
+    "evidently>=0.7.23",
+    "feast>=0.66.0",
+    "optuna>=5.0.0",
+    "prefect>=3.8.6",
+]
+
+[project.scripts]
+churn = "churn.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.19,<0.13.0"]
+build-backend = "uv_build"
