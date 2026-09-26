@@ -16,6 +16,7 @@ def main(argv: list[str] | None = None) -> None:
     promote_cmd.add_argument("--to", dest="target", required=True, help="e.g. staging, prod")
     pipeline_cmd = sub.add_parser("pipeline", help="run the Prefect training flow")
     pipeline_cmd.add_argument("--promote-to", default="staging", help="'' to skip promotion")
+    sub.add_parser("features", help="publish features to Feast (offline + online store)")
     monitor_cmd = sub.add_parser("monitor", help="run the Prefect drift monitoring flow")
     monitor_cmd.add_argument("--no-retrain", action="store_true", help="report drift only")
     simulate_cmd = sub.add_parser("simulate", help="send customer traffic to the API")
@@ -53,6 +54,19 @@ def main(argv: list[str] | None = None) -> None:
             from churn.flows import training_flow
 
             training_flow(promote_to=args.promote_to or None, settings=settings)
+        case "features":
+            import os
+
+            from feast import FeatureStore
+
+            from churn.data import load
+            from churn.feature_store import publish
+
+            os.environ.setdefault("FEAST_REDIS_CONNECTION", "localhost:6379")
+            store = FeatureStore(repo_path=str(settings.feature_repo))
+            customers = load(settings.raw_data_path)
+            publish(store, customers, settings.offline_features_path)
+            print(f"published {len(customers)} customers to Feast")
         case "monitor":
             from churn.flows import drift_monitoring_flow
 

@@ -1,0 +1,11 @@
+# Feast repo for the churn features. FEAST_REDIS_CONNECTION is set by the Makefile (host:
+# localhost:6379) and docker-compose (redis:6379).
+project: telco_churn
+provider: local
+registry: ../../data/feast/registry.db
+online_store:
+  type: redis
+  connection_string: ${FEAST_REDIS_CONNECTION}
+offline_store:
+  type: file
+entity_key_serialization_version: 3

@@ -10,3 +10,4 @@ mlartifacts/
 .env
 data/predictions/
 data/reports/
+data/feast/
