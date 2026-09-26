@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import Any
 
 import mlflow
-import mlflow.data
 import mlflow.sklearn
 import pandas as pd
 from lightgbm import LGBMClassifier
 from mlflow import MlflowClient
+from mlflow.data.pandas_dataset import from_pandas
 from sklearn.metrics import (
     average_precision_score,
     f1_score,
@@ -38,6 +38,7 @@ DEFAULT_PARAMS: dict[str, Any] = {
 
 # Non-builtin classes skops must be allowed to deserialize from the model artifact.
 SKOPS_TRUSTED_TYPES = [
+    "collections.OrderedDict",
     "churn.features.FeatureEngineer",
     "lightgbm.basic.Booster",
     "lightgbm.sklearn.LGBMClassifier",
@@ -100,7 +101,7 @@ def train(
     with mlflow.start_run() as run:
         mlflow.log_params({**params, "seed": settings.random_seed, "test_size": settings.test_size})
         mlflow.log_input(
-            mlflow.data.from_pandas(df, source=str(data_path), name="telco_churn", targets=TARGET),
+            from_pandas(df, source=str(data_path), name="telco_churn", targets=TARGET),
             context="training",
         )
 

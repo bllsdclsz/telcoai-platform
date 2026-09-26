@@ -1,0 +1,60 @@
+name: churn-ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      [
+        "churn/**",
+        "pyproject.toml",
+        "uv.lock",
+        ".github/workflows/churn-ci.yml",
+      ]
+  pull_request:
+    paths:
+      [
+        "churn/**",
+        "pyproject.toml",
+        "uv.lock",
+        ".github/workflows/churn-ci.yml",
+      ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MLFLOW_DISABLE_AGENT_HINT: "1"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+      - name: Type check
+        run: uv run mypy churn/src
+      - name: Test
+        run: uv run pytest -p no:warnings
+
+  image:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: churn/Dockerfile
+          push: false
+          tags: telco-churn-api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
