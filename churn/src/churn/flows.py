@@ -1,4 +1,4 @@
-"""Prefect flows: training (fetch -> train + gate -> promote) and drift monitoring."""
+"""Prefect flows: training (fetch -> [tune] -> train + gate -> promote) and drift monitoring."""
 
 from datetime import UTC, datetime
 from pathlib import Path
@@ -13,6 +13,7 @@ from churn.data import download, load
 from churn.drift import DriftResult, detect_drift, load_predictions
 from churn.registry import promote
 from churn.train import TrainResult, train
+from churn.tune import tune
 
 
 @task(retries=3, retry_delay_seconds=10, cache_policy=NO_CACHE)
@@ -34,6 +35,18 @@ def train_and_register(
 
 
 @task(cache_policy=NO_CACHE)
+def tune_params(settings: Settings, n_trials: int, data: Path) -> dict[str, Any]:
+    result = tune(settings, n_trials=n_trials, data_path=data)
+    get_run_logger().info(
+        "Tuned %d trials: CV ROC AUC %.4f (baseline %.4f)",
+        result.n_trials,
+        result.best_cv_roc_auc,
+        result.baseline_cv_roc_auc,
+    )
+    return result.best_params
+
+
+@task(cache_policy=NO_CACHE)
 def promote_model(settings: Settings, source: str, target: str) -> str:
     version = promote(settings, source, target)
     get_run_logger().info("Promoted v%s: %s -> %s", version, source, target)
@@ -45,15 +58,19 @@ def training_flow(
     promote_to: str | None = "staging",
     params: dict[str, Any] | None = None,
     settings: Settings | None = None,
+    tune_trials: int = 0,
 ) -> TrainResult:
     """Train a candidate and, if it passes the quality gate, promote it to ``promote_to``.
 
+    With ``tune_trials`` > 0, hyperparameters are searched first (explicit ``params`` still win).
     Promotion to ``prod`` is intentionally not automated: it needs a human approval.
     """
     if promote_to == "prod":
         raise ValueError("promotion to prod requires manual approval: `churn promote`")
     settings = settings or Settings()
     data = fetch_data(settings)
+    if tune_trials > 0:
+        params = {**tune_params(settings, tune_trials, data), **(params or {})}
     result = train_and_register(settings, params, data)
     if promote_to:
         promote_model(settings, settings.register_alias, promote_to)

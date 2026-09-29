@@ -14,7 +14,7 @@ Dashboard: Grafana → TelcoAI → **Churn API** · Metrics: `http://<host>:8000
 **Meaning:** Prometheus could not scrape the API for 1 minute.
 
 1. Check the container: `make ps`, then `sh scripts/compose.sh logs --tail 100 churn-api`.
-2. **Startup failure** ("RESOURCE_DOES_NOT_EXIST" / alias not found): no model sits behind the serving alias. Check the registry (MLflow UI → Models → telco-churn → aliases), then run `uv run churn promote --from staging --to prod`.
+2. **Startup failure** ("RESOURCE_DOES_NOT_EXIST" / alias not found): no model sits behind the serving alias. Check the registry (MLflow UI → Models → telco-churn → aliases), then run `uv run churn promote --from staging --to prod --approved-by "<you>"` (add `--fairness-reviewed` if its model card flags a gap).
 3. **MLflow unreachable:** the API loads the model at startup, so it needs MLflow up (`curl localhost:5000/health`).
 4. Restart: `make serve-docker`.
 
@@ -23,7 +23,7 @@ Dashboard: Grafana → TelcoAI → **Churn API** · Metrics: `http://<host>:8000
 **Meaning:** p95 `/predict` latency has been above 300 ms for 5 minutes.
 
 1. Look at the **Requests / s** panel. Is it a traffic spike? Batch callers should use batches of 1,000 customers or fewer (the request limit).
-2. Look at **Model version**. Did a promotion just happen? A heavier model can be slower. If so, roll back with `uv run churn promote --from prod-previous --to prod`, then restart the API.
+2. Look at **Model version**. Did a promotion just happen? A heavier model can be slower. If so, roll back with `uv run churn promote --from prod-previous --to prod --approved-by "<you>"`, then restart the API. The rollback target was already approved, so no new fairness review is needed.
 3. Check CPU on the host (`docker stats`). Scale out by running more replicas behind a load balancer (Kubernetes deployment, Project 3).
 
 ## ChurnApiHighErrorRate
