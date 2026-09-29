@@ -34,4 +34,4 @@ make demo-drift       # simulated drift -> automatic retrain to staging
 - **Promotion by alias:** training only ever writes `dev`. Promotion is an explicit step, and the previous version is kept as `<env>-previous` for one-command rollback.
 - **CI on every change:** ruff, mypy, pytest, then a container build.
 
-Tool versions and upgrade notes: [docs/versions.md](docs/versions.md).
+Progress and next steps: [docs/roadmap.md](docs/roadmap.md). Tool versions: [docs/versions.md](docs/versions.md). Runbooks: [docs/runbooks/](docs/runbooks/).
