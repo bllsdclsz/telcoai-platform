@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     chunk_max_words: int = 120
     top_k: int = 5
 
-    # Generation. Any LiteLLM model string works, e.g. "anthropic/<model>" with its API key.
+    # Generation. Any LiteLLM model string works, e.g. "azure/<deployment>" with its API key.
     prompts_dir: Path = PACKAGE_DIR / "prompts"
     prompt_version: int | None = None  # None -> latest version
     # Chosen by comparison (support-rag/README.md): newest model with clean, correct answers.
