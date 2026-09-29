@@ -46,5 +46,11 @@ class Settings(BaseSettings):
     # to the model's NO_ANSWER instruction (second layer). See support-rag/README.md.
     min_retrieval_score: float = 0.78
 
+    # Answer-quality evaluation: the judge is a different model family than the generator,
+    # so no model grades its own answers. Runs are logged to MLflow when a URI is set.
+    judge_model: str = "ollama_chat/qwen2.5"
+    eval_mlflow_uri: str | None = None
+    eval_experiment: str = "support-assistant-eval"
+
     # Learned prompt-injection classifier (rag train-injection); None disables it (rules only).
     injection_classifier: Path | None = PACKAGE_DIR / "models" / "injection_classifier.json"
