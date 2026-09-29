@@ -48,6 +48,10 @@ def main(argv: list[str] | None = None) -> None:
     sev.add_argument("--gate", action="store_true", help="exit 1 if below eval/thresholds.yaml")
     sev.add_argument("--rules-only", action="store_true", help="skip the learned classifier")
     sub.add_parser("train-injection", help="train the prompt-injection classifier artifact")
+    act = sub.add_parser("eval-actions", help="does the model propose credits exactly when asked?")
+    act.add_argument("--model", help="generator model (default: configured)")
+    act.add_argument("--report", help="write the JSON report to this file")
+    act.add_argument("--gate", action="store_true", help="exit 1 if below eval/thresholds.yaml")
     aud = sub.add_parser("audit", help="query the request traces (audit log)")
     aud.add_argument("--reason", help="e.g. blocked_input, ungrounded, answered")
     aud.add_argument("--lang", choices=LANGUAGES)
@@ -193,6 +197,50 @@ def main(argv: list[str] | None = None) -> None:
                     print("GENERATION GATE FAILED:\n  " + "\n  ".join(violations))
                     sys.exit(1)
                 print("generation gate passed")
+        case "eval-actions":
+            from support_rag.actions import ActionStore, evaluate_actions
+            from support_rag.api import build_assistant
+
+            settings = settings.model_copy(
+                update={"actions_db": None, **({"llm_model": args.model} if args.model else {})}
+            )
+            bot = build_assistant(settings)
+            bot.actions = ActionStore(":memory:")  # evaluation never touches the real queue
+            cases = yaml.safe_load((settings.eval_dir / "actions.yaml").read_text(encoding="utf-8"))
+            result = evaluate_actions(bot, cases)
+            print(f"{settings.llm_model} | {bot.prompt.ref}")
+            for key in ("recall", "precision", "hours_accuracy", "wrong_hours_flagged"):
+                value = result[key]
+                print(f"  {key:20} {'-' if value is None else f'{value:.3f}'}")
+            for r in result["rows"]:
+                bad = r["expected"] != r["proposed"] or r["hours_ok"] is False
+                if bad:
+                    print(
+                        f"  ! [{r['lang']}] {r['q'][:55]:55} expected={r['expected']!s:5} "
+                        f"got={r['reason']} hours {r['extracted_hours']} vs {r['expected_hours']}"
+                        f" flagged={r['flagged_mismatch']}"
+                    )
+            if args.report:
+                with open(args.report, "w", encoding="utf-8") as f:
+                    json.dump(
+                        {"model": settings.llm_model, "prompt": bot.prompt.ref, **result},
+                        f,
+                        ensure_ascii=False,
+                        indent=1,
+                    )
+            if args.gate:
+                limits = yaml.safe_load(
+                    (settings.eval_dir / "thresholds.yaml").read_text(encoding="utf-8")
+                )["actions"]
+                failed = [
+                    f"{k} {result[k]} < {v}"
+                    for k, v in limits.items()
+                    if result[k] is None or result[k] < v
+                ]
+                if failed:
+                    print("ACTIONS GATE FAILED:\n  " + "\n  ".join(failed))
+                    sys.exit(1)
+                print("actions gate passed")
         case "audit":
             from datetime import UTC, datetime
 

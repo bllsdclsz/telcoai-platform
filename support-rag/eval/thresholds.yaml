@@ -33,3 +33,10 @@ generation:
   judge_faithful: 0.85
   judge_relevant: 0.85
   quality_pass: 0.80
+
+# Actions: `rag eval-actions --gate` (local LLM). Measured 2026-09-29, granite4.2:8b + answer@v3:
+# recall 0.875 (7/8), precision 1.0, hours accuracy 1.0. qwen2.5 reached only 0.25 recall.
+actions:
+  recall: 0.75
+  precision: 0.95
+  hours_accuracy: 0.9

@@ -1,0 +1,89 @@
+# Action evaluation: `rag eval-actions`. Does the model propose a goodwill credit exactly when a
+# logged-in customer explicitly asks for compensation because of an outage, and does it extract
+# the outage duration correctly (hours)? propose: false cases share vocabulary on purpose.
+
+- {
+    q: "Mein Internet war 3 Tage lang weg. Ich möchte dafür eine Gutschrift.",
+    lang: de,
+    propose: true,
+    hours: 72,
+  }
+- {
+    q: "Seit 30 Stunden kein Internet! Bekomme ich eine Entschädigung?",
+    lang: de,
+    propose: true,
+    hours: 30,
+  }
+- {
+    q: "Mon internet a été coupé pendant 2 jours, je demande un geste commercial.",
+    lang: fr,
+    propose: true,
+    hours: 48,
+  }
+- {
+    q: "Plus de réseau mobile depuis 26 heures. Je veux être remboursé pour la panne.",
+    lang: fr,
+    propose: true,
+    hours: 26,
+  }
+- {
+    q: "La TV non funziona da 36 ore, vorrei un rimborso per il disservizio.",
+    lang: it,
+    propose: true,
+    hours: 36,
+  }
+- {
+    q: "Internet fuori uso per 1,5 giorni: chiedo un accredito.",
+    lang: it,
+    propose: true,
+    hours: 36,
+  }
+- {
+    q: "My internet was down for 30 hours. Can I get money back for the outage?",
+    lang: en,
+    propose: true,
+    hours: 30,
+  }
+- {
+    q: "The mobile network was out for 4 days in my village, I want compensation.",
+    lang: en,
+    propose: true,
+    hours: 96,
+  }
+
+- {
+    q: "Seit heute Morgen geht das Internet nicht. Was kann ich tun?",
+    lang: de,
+    propose: false,
+  }
+- {
+    q: "Ich möchte ein günstigeres Abo, gibt es Rabatt?",
+    lang: de,
+    propose: false,
+  }
+- {
+    q: "Internet en panne depuis ce matin, comment redémarrer la box ?",
+    lang: fr,
+    propose: false,
+  }
+- {
+    q: "Mon téléphone est tombé dans l'eau, est-ce que je suis remboursé ?",
+    lang: fr,
+    propose: false,
+  }
+- { q: "C'è un guasto internet nella mia zona?", lang: it, propose: false }
+- {
+    q: "Quanto costa il secondo sollecito se pago in ritardo?",
+    lang: it,
+    propose: false,
+  }
+- {
+    q: "How do I check if there is an outage in my area?",
+    lang: en,
+    propose: false,
+  }
+- {
+    q: "I paid my invoice twice by mistake, how do I get a refund?",
+    lang: en,
+    propose: false,
+  }

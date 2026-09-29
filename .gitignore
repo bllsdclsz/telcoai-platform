@@ -12,3 +12,4 @@ data/predictions/
 data/reports/
 data/feast/
 data/qdrant/
+data/*.db
