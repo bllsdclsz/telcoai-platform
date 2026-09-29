@@ -1,0 +1,41 @@
+# Generates a model-serving service wired into the platform: code, tests, image, CI, Helm
+# chart and Argo CD deployment. Run from the repo root: make new-service NAME=<name>
+# The answers are recorded in <name>/.copier-answers.yml.
+_subdirectory: template
+_min_copier_version: "9.18"
+
+service_name:
+  type: str
+  help: Service name (lowercase, dashes), used for the directory, image, chart and namespaces' apps
+  validator: >-
+    {% if not (service_name | regex_search('^[a-z][a-z0-9-]{1,30}[a-z0-9]$')) %}
+    lowercase letters, digits and dashes, 3-32 characters
+    {% endif %}
+
+package_name:
+  type: str
+  help: Python package name
+  default: "{{ service_name | replace('-', '_') }}"
+
+description:
+  type: str
+  help: One sentence on what the service predicts
+  default: "Serves a model from the platform's registry."
+
+team:
+  type: str
+  help: Owning team (goes into labels and the model card)
+  default: data-science
+
+model_name:
+  type: str
+  help: Registered model name in the MLflow registry
+  default: "{{ service_name }}"
+
+github_owner:
+  type: str
+  help: GitHub owner of this repository (the image goes to ghcr.io/<owner>/<service>)
+  default: bllsdclsz
+
+_tasks:
+  - command: uv lock --directory {{ service_name }}

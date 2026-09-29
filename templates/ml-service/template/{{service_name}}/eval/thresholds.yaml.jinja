@@ -1,0 +1,5 @@
+# Quality gate for {{ model_name }}: a candidate below any threshold is not registered, so it can
+# never be promoted. Enforce these in your training job (see churn/src/churn/train.py for one way).
+metrics:
+  # roc_auc: 0.80
+  # max_group_gap: 0.05   # largest metric gap between protected groups

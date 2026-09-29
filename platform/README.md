@@ -58,7 +58,8 @@ curl localhost:18001/health     # {"status":"ok","model_version":"1"}
 | `k3d/cluster.yaml`            | Cluster definition. It never touches `~/.kube/config` or the current context                      |
 | `scripts/k3d.sh`              | Runs k3d locally, or inside the Rancher Desktop VM when the Windows Docker pipe is unavailable    |
 | `scripts/promote-image.sh`    | Opens the image promotion PR                                                                      |
-| `scripts/check-promotions.sh` | The promotion rules CI enforces                                                                   |
+| `scripts/check-promotions.sh` | The promotion rules CI enforces, for every service                                                                   |
+| `scripts/validate-manifests.sh` | Lints every chart and validates its manifests for each environment, plus the Argo CD apps (CI) |
 | `terraform/`                  | Namespaces (`ResourceQuota`, `LimitRange`), Argo CD, and the root application                     |
 | `charts/mlflow-registry/`     | The shared MLflow registry                                                                        |
 | `charts/churn-api/`           | Churn API serving one alias, plus the optional dev bootstrap job                                  |
@@ -79,3 +80,4 @@ curl localhost:18001/health     # {"status":"ok","model_version":"1"}
 - **MLflow was OOM-killed at 1.5 GiB.** MLflow 3.x starts a GenAI job runner next to the server: 8 more Python processes, 1.8 GiB in total instead of 0.6 GiB (measured with `docker stats`). The kernel log showed the kills; the container status only said `Error`, exit 137. A model registry does not need the runner, so `MLFLOW_SERVER_ENABLE_JOB_EXECUTION=false`.
 - **Default probes killed a healthy MLflow.** The 1 s default timeout is too short for a Python server starting under a CPU limit. A `startupProbe` covers the slow start, and the liveness probe only starts after it passes.
 - **The API used to exit when its alias had no model**, so a fresh environment crash-looped, and after a promotion it could wait out the 5-minute restart back-off. Now it starts unready (`/health` 503, `/livez` 200 for the liveness probe) and follows its alias: on the cluster, moving an alias from version 1 to 2 switched the running pod in about 10 s, with no restart. The same path applies a rollback.
+- **A registry outage would have blocked API startup for minutes.** MLflow's client retries 7 times with exponential backoff and a 120 s timeout by default. The API retries in its own loop, so it now sets 1 retry and a 10 s timeout: with the registry unreachable it starts unready in seconds (found while testing the service template's image).

@@ -1,0 +1,14 @@
+"""Runtime configuration, overridable through environment variables (prefix SERVICE_)."""
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="SERVICE_", extra="ignore")
+
+    mlflow_tracking_uri: str = "http://127.0.0.1:5000"
+    model_name: str = "{{ model_name }}"
+    # The alias this deployment serves: dev -> @dev, test -> @staging, prod -> @prod.
+    serving_alias: str = "prod"
+    # How often to check whether the alias moved (promotion or rollback). 0 disables it.
+    model_refresh_seconds: float = 30.0

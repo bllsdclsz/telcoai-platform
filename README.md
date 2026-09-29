@@ -6,7 +6,8 @@ An end-to-end ML and GenAI platform for a telecom operator: it covers taking mod
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
 | [`churn/`](churn/)             | Churn prediction: validated data, reproducible training, MLflow registry with dev→staging→prod aliases, quality gate, model cards, FastAPI serving, Feast, drift-triggered retraining, CI | Done        |
 | [`support-rag/`](support-rag/) | Multilingual (DE/FR/IT/EN) customer-support RAG assistant: cited answers from a local LLM, guardrails, evaluation gates, tracing and audit log, human approval for actions                | Done        |
-| [`platform/`](platform/)       | Local Kubernetes (k3d), Terraform, Argo CD GitOps with dev/test/prod namespaces and budgets, Helm chart for the churn stack; next: more services, promotion by PR, service template, SLOs | In progress |
+| [`platform/`](platform/) | Local Kubernetes (k3d), Terraform, Argo CD GitOps: dev/test/prod with budgets, one shared model registry, image promotion by PR with CI-enforced rules, APIs that follow their model alias | In progress |
+| [`templates/ml-service/`](templates/ml-service/) | `make new-service NAME=…`: a model service already wired into the platform (API, tests, image, CI, Helm chart, Argo CD app, model card), tested in CI | Done |
 
 ## Quick start
 

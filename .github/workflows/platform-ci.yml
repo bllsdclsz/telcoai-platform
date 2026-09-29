@@ -26,27 +26,11 @@ jobs:
         run: |
           curl -sSfL -o kc.tar.gz "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
           tar -xzf kc.tar.gz kubeconform && sudo mv kubeconform /usr/local/bin/
-      - name: Lint and validate every chart and environment
-        run: |
-          helm lint --strict platform/charts/mlflow-registry
-          helm template mlflow platform/charts/mlflow-registry -n telcoai-registry \
-            | kubeconform -strict -summary -kubernetes-version 1.35.0
-          for values in platform/gitops/envs/*/churn-api.yaml; do
-            echo "::group::$values"
-            helm lint --strict platform/charts/churn-api -f "$values"
-            helm template churn platform/charts/churn-api -f "$values" \
-              | kubeconform -strict -summary -kubernetes-version 1.35.0
-            echo "::endgroup::"
-          done
-      - name: Chart refuses to render without an image tag
+      - name: Lint and validate every chart, environment and Argo CD app
+        run: sh platform/scripts/validate-manifests.sh
+      - name: Charts refuse to render without an image tag
         run: |
           ! helm template churn platform/charts/churn-api 2>/dev/null
-      - name: Validate Argo CD Applications
-        run: >
-          kubeconform -strict -summary
-          -schema-location default
-          -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
-          platform/gitops/apps
 
   # Test and prod pin immutable tags that exist; prod only runs what has been in test.
   promotions:

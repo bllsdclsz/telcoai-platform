@@ -7,6 +7,7 @@ restart.
 
 import asyncio
 import logging
+import os
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -37,6 +38,11 @@ from churn.serve.features import FeatureServerClient
 from churn.serve.monitoring import Metrics, PredictionLog
 
 DECISION_THRESHOLD = 0.5
+# The API retries in its own loop, so MLflow's client must fail fast: its defaults (7 retries
+# with exponential backoff, 120 s timeout) would block startup for minutes when the registry
+# is down, and the startup probe would kill the pod.
+os.environ.setdefault("MLFLOW_HTTP_REQUEST_MAX_RETRIES", "1")
+os.environ.setdefault("MLFLOW_HTTP_REQUEST_TIMEOUT", "10")
 log = logging.getLogger(__name__)
 
 

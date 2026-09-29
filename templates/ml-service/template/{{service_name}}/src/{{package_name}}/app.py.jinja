@@ -1,0 +1,194 @@
+"""Prediction API that serves the registered model behind an alias.
+
+Platform conventions (keep them when you change this file):
+- /livez is liveness: the process answers. It never depends on the registry.
+- /health is readiness: 503 until a model is loaded, so an environment without a promoted
+  model runs but gets no traffic.
+- The API follows its alias: a promotion or rollback takes effect within
+  SERVICE_MODEL_REFRESH_SECONDS, without a restart. If the registry is down, it keeps serving.
+- /metrics exposes request, latency and model-version metrics for the platform dashboards.
+"""
+
+import asyncio
+import logging
+import os
+import time
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
+from typing import Any
+
+import pandas as pd
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+)
+from pydantic import BaseModel, Field
+
+from {{ package_name }}.config import Settings
+
+log = logging.getLogger(__name__)
+# The API retries in its own loop, so MLflow's client must fail fast: its defaults (7 retries
+# with exponential backoff, 120 s timeout) would block startup for minutes when the registry
+# is down, and the startup probe would kill the pod.
+os.environ.setdefault("MLFLOW_HTTP_REQUEST_MAX_RETRIES", "1")
+os.environ.setdefault("MLFLOW_HTTP_REQUEST_TIMEOUT", "10")
+
+
+# TODO: replace the free-form record with a typed schema of your features, so bad requests
+# get a 422 instead of reaching the model.
+class PredictRequest(BaseModel):
+    records: list[dict[str, Any]] = Field(min_length=1, max_length=1000)
+
+
+class PredictResponse(BaseModel):
+    model_version: str
+    predictions: list[Any]
+
+
+@dataclass(frozen=True)
+class LoadedModel:
+    model: Any  # anything with predict(DataFrame)
+    version: str
+
+
+def registered_version(settings: Settings) -> str:
+    from mlflow import MlflowClient
+
+    client = MlflowClient(tracking_uri=settings.mlflow_tracking_uri)
+    version = client.get_model_version_by_alias(settings.model_name, settings.serving_alias).version
+    return str(version)
+
+
+def load_registered_model(settings: Settings) -> LoadedModel:
+    import mlflow.pyfunc
+
+    mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
+    version = registered_version(settings)
+    # Load by version, not alias: the alias may move between the two calls.
+    model = mlflow.pyfunc.load_model(f"models:/{settings.model_name}/{version}")
+    return LoadedModel(model, version)
+
+
+class Metrics:
+    def __init__(self) -> None:
+        self.registry = CollectorRegistry()
+        self.requests = Counter(
+            "service_requests_total",
+            "HTTP requests",
+            ["route", "method", "status"],
+            registry=self.registry,
+        )
+        self.latency = Histogram(
+            "service_request_duration_seconds",
+            "Request latency",
+            ["route", "method"],
+            registry=self.registry,
+        )
+        self.model_info = Gauge(
+            "service_model_info",
+            "Model version served (value is always 1)",
+            ["model_version", "alias"],
+            registry=self.registry,
+        )
+
+
+def create_app(
+    settings: Settings | None = None,
+    loader: Callable[[], LoadedModel] | None = None,
+    version_probe: Callable[[], str] | None = None,
+) -> FastAPI:
+    settings = settings or Settings()
+    cfg = settings
+    loader = loader or (lambda: load_registered_model(cfg))
+    version_probe = version_probe or (lambda: registered_version(cfg))
+    alias = settings.serving_alias
+    metrics = Metrics()
+
+    def serve(app: FastAPI, loaded: LoadedModel) -> None:
+        previous: LoadedModel | None = app.state.loaded
+        app.state.loaded = loaded  # one reference swap: requests see the old or the new model
+        if previous is not None:
+            metrics.model_info.remove(previous.version, alias)
+        metrics.model_info.labels(loaded.version, alias).set(1)
+        log.warning("serving %s@%s v%s", settings.model_name, alias, loaded.version)
+
+    async def follow_alias(app: FastAPI) -> None:
+        while True:
+            await asyncio.sleep(settings.model_refresh_seconds)
+            try:
+                current: LoadedModel | None = app.state.loaded
+                if current is None or await asyncio.to_thread(version_probe) != current.version:
+                    serve(app, await asyncio.to_thread(loader))
+            except Exception as exc:  # registry down, alias unset: keep serving what we have
+                log.warning("model check for @%s failed: %s", alias, exc)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        app.state.loaded = None
+        try:
+            serve(app, loader())
+        except Exception as exc:
+            log.warning("no model behind @%s yet, not ready: %s", alias, exc)
+        task = None
+        if settings.model_refresh_seconds > 0:
+            task = asyncio.create_task(follow_alias(app))
+        yield
+        if task is not None:
+            task.cancel()
+
+    app = FastAPI(title="{{ service_name }}", version="0.1.0", lifespan=lifespan)
+
+    @app.middleware("http")
+    async def record_request(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        start = time.perf_counter()
+        status = 500
+        try:
+            response = await call_next(request)
+            status = response.status_code
+            return response
+        finally:
+            route = getattr(request.scope.get("route"), "path", "unmatched")
+            metrics.latency.labels(route, request.method).observe(time.perf_counter() - start)
+            metrics.requests.labels(route, request.method, str(status)).inc()
+
+    def current_model(request: Request) -> LoadedModel:
+        loaded: LoadedModel | None = request.app.state.loaded
+        if loaded is None:
+            raise HTTPException(503, f"no model behind @{alias} yet")
+        return loaded
+
+    @app.get("/livez", include_in_schema=False)
+    def livez() -> dict[str, str]:
+        return {"status": "alive"}
+
+    @app.get("/health", responses={503: {"description": "No model loaded yet"}})
+    def health(request: Request) -> Response:
+        loaded: LoadedModel | None = request.app.state.loaded
+        if loaded is None:
+            return JSONResponse({"status": "waiting_for_model", "alias": alias}, status_code=503)
+        return JSONResponse({"status": "ok", "model_version": loaded.version})
+
+    @app.get("/metrics", include_in_schema=False)
+    def prometheus_metrics() -> Response:
+        return Response(generate_latest(metrics.registry), media_type=CONTENT_TYPE_LATEST)
+
+    @app.post("/predict", responses={503: {"description": "No model loaded yet"}})
+    def predict(body: PredictRequest, request: Request) -> PredictResponse:
+        loaded = current_model(request)
+        output = loaded.model.predict(pd.DataFrame(body.records))
+        predictions = output.tolist() if hasattr(output, "tolist") else list(output)
+        return PredictResponse(model_version=loaded.version, predictions=predictions)
+
+    return app
+
+
+app = create_app()

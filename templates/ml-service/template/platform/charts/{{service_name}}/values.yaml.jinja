@@ -1,0 +1,19 @@
+# Defaults; each environment overrides them in platform/gitops/envs/<env>/{{ service_name }}.yaml.
+
+image:
+  repository: ghcr.io/{{ github_owner }}/{{ service_name }}
+  tag: "" # required: dev follows main, test and prod pin sha-<commit>
+  pullPolicy: IfNotPresent
+
+team: {{ team }}
+
+registry:
+  url: http://mlflow.telcoai-registry:5000
+  modelName: {{ model_name }}
+
+api:
+  replicas: 1
+  servingAlias: prod
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: 500m, memory: 512Mi }
