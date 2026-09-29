@@ -25,6 +25,7 @@ concurrency:
 
 env:
   FASTEMBED_CACHE_PATH: ${{ github.workspace }}/.cache/fastembed
+  HF_HUB_DISABLE_SYMLINKS: "1"  # see support_rag/embeddings.py
 
 jobs:
   test:
@@ -57,7 +58,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/fastembed
-          key: fastembed-${{ hashFiles('support-rag/src/support_rag/config.py') }}
+          key: fastembed-v2-${{ hashFiles('support-rag/src/support_rag/config.py') }}
       - run: uv sync --locked
       - name: Retrieval evaluation gate
         run: uv run rag eval-retrieval --gate --report retrieval-report.json

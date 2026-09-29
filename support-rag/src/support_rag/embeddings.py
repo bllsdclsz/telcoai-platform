@@ -1,9 +1,16 @@
 """Dense and sparse text encoders (fastembed / ONNX: CPU-friendly, no torch dependency)."""
 
+import os
 from collections.abc import Sequence
 from typing import Protocol
 
 from qdrant_client import models
+
+# onnxruntime >= 1.30 refuses weights outside the model directory. On Linux the Hugging Face cache
+# symlinks files into a shared blobs/ dir, which breaks models with external weights
+# (e5-large's model.onnx_data). Real files in the snapshot avoid that; must be set before
+# huggingface_hub is imported.
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS", "1")
 
 
 class DenseEncoder(Protocol):
