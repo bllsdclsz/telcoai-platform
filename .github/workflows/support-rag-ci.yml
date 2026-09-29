@@ -45,8 +45,8 @@ jobs:
       - name: Test
         run: uv run pytest -p no:warnings support-rag/tests
 
-  # Evaluation gate: real embedding model on the golden questions; fails below eval/thresholds.yaml.
-  retrieval-gate:
+  # Evaluation gates with the real embedding model; fail below eval/thresholds.yaml.
+  eval-gates:
     needs: test
     runs-on: ubuntu-latest
     steps:
@@ -62,6 +62,8 @@ jobs:
       - run: uv sync --locked
       - name: Retrieval evaluation gate
         run: uv run rag eval-retrieval --gate --report retrieval-report.json
+      - name: Safety evaluation gate (PII redaction, prompt-injection rules + classifier)
+        run: uv run rag eval-safety --gate
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

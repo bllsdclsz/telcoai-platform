@@ -4,7 +4,7 @@ A retrieval-augmented support assistant for a Swiss telecom operator, answering 
 
 > The operator **"Nordalp Mobile"** and all its help articles, prices and URLs (`*.nordalp.example`) are **fictional**, written for this project. They are not affiliated with any real company.
 
-Status: **retrieval, evaluation gate and cited answers from a local LLM**. Next: guardrails, audit logging/tracing and generation evaluation. See [the roadmap](../docs/roadmap.md).
+Status: **retrieval, cited answers from a local LLM, guardrails, and evaluation gates for retrieval and safety**. Next: audit logging/tracing and answer-quality evaluation with an LLM judge. See [the roadmap](../docs/roadmap.md).
 
 ## Pipeline
 
@@ -34,7 +34,7 @@ question + lang ──▶ retrieve top-4 ──▶ best score < 0.78? ──yes�
                     "NO_ANSWER" ──▶ localized fallback      answer ──▶ keep only the sources it cites [n]
 ```
 
-- **Provider-agnostic** (`llm.py`): one `ChatModel` interface. LiteLLM routes a model string to the provider, so switching is configuration only. The default is **local**: `ollama_chat/granite4.2:8b` (IBM Granite 4.2, needs Ollama ≥ 0.34). `RAG_LLM_MODEL=ollama_chat/qwen2.5` or `anthropic/<model>` work the same way.
+- **Provider-agnostic** (`llm.py`): one `ChatModel` interface. LiteLLM routes a model string to the provider, so switching is configuration only. The default is **local**: `ollama_chat/granite4.2:8b` (IBM Granite 4.2, needs Ollama ≥ 0.34). `RAG_LLM_MODEL=ollama_chat/qwen2.5` or a hosted model such as `azure/<deployment>` work the same way.
 - **Thinking off** (`reasoning_effort: none`, which LiteLLM maps per provider): answering from given sources doesn't need reasoning. With thinking on, Granite spent the whole 400-token budget reasoning and returned _no_ answer. That failure now has its own `generation_failed` reason instead of looking like the model declining. Reasoning that still leaks is stripped, including a dangling `</think>`.
 - **Versioned prompts** (`prompts/answer/v1.yaml`, `prompts.py`): prompts live in git and are reviewed like code. Every answer records `answer@v1` and the prompt file's SHA-256, so any response can be traced to the exact prompt text.
 - **Grounded, cited answers** (`assistant.py`): sources are numbered once per article, the model must cite `[n]`, and the API returns only the sources the answer actually cites. The prompt tells the model to answer in the customer's language, never invent prices or links, and ignore instructions hidden in the question.
@@ -65,6 +65,40 @@ The same 16 cases were run on each model: 12 in-scope questions (3 per language)
 | qwen2.5 7B (2024)            | 12/12 | 12/12 | 4/4      | clean                                           | 1.7 s          | full                    |
 
 Granite 4.2 8B is the default: it's the newest model and its answers are clean. The 3B model's echoes would reach customers, and a fact check alone doesn't catch them. That gap is what the generation evaluation (next stage) adds: an LLM judge for faithfulness and style. The judge will be a different model family (qwen2.5), so no model grades its own answers. qwen2.5 is the faster fallback when latency matters.
+
+## Guardrails
+
+```
+question ──▶ PII redaction ──▶ injection rules ──▶ injection classifier ──▶ retrieval + scope ──▶ LLM ──▶ output guards ──▶ answer
+               (never sent to        (patterns,            (e5 embedding +                             (prompt-leak canary,
+                the model or logs)    DE/FR/IT/EN)          logistic regression)                        citation + number grounding)
+```
+
+- **PII redaction** (`guardrails.py`): Swiss phone numbers, e-mails, IBANs, payment cards (Luhn-checked) and AHV/AVS numbers are replaced by `[TYPE]` placeholders before retrieval and the model call. Nordalp's own numbers (hotline, 444) and non-card digit runs are kept. Pattern-based by design: these identifiers have strict formats. Names are not detected (that would need an NER model per language).
+- **Prompt injection, layer 1: rules.** Normalized, accent-insensitive patterns in four languages. They are fast and precise, but see below.
+- **Prompt injection, layer 2: learned classifier** (`injection_model.py`, `models/injection_classifier.json`). Logistic regression on the same e5 embedding the retriever computes, so it adds no extra model call.
+  - **Training data:** [deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections) (Apache-2.0, EN/DE) plus the in-house attack set, with the golden support questions as in-domain benign examples.
+  - **Reproducible:** `rag train-injection` rebuilds it, and the 14 KB artifact is versioned in git with its training metadata. Serving only needs a dot product.
+- **Output guards:**
+  - **Prompt-leak canary:** a per-process token sits in the system prompt (`answer@v2`); an answer that contains it is blocked.
+  - **Grounding:** every answer must cite a source, and every number in it must appear in the sources it cites. An invented price becomes `ungrounded` and the fallback is returned.
+
+### What the safety evaluation showed
+
+`rag eval-safety` scores the input guardrails on `eval/safety.yaml`:
+
+| Detector                     | Tuning attacks (36) | **Held-out attacks (16)** | False alarms, held-out benign (38) | False alarms, real questions (94) |
+| ---------------------------- | ------------------- | ------------------------- | ---------------------------------- | --------------------------------- |
+| Rules only                   | 100%                | **0%**                    | 0%                                 | 0%                                |
+| Rules + classifier (shipped) | 100%                | **93.8%**                 | 7.9%                               | 0%                                |
+
+- **The rules overfit completely.** After adding pattern classes they caught 100% of the attacks they were tuned on, yet **none** of 16 attacks written afterwards with new phrasings. Without the held-out set, that 100% would have been reported as the result.
+- **The classifier generalizes, even across languages.** It catches French and Italian attacks although its training data has no French or Italian. On deepset's test split it reaches 95% recall at 100% precision.
+- **Its false alarms were a domain problem.** Trained on generic benign text only, it blocked 7.6% of real support questions ("Show me how to switch to an eSIM"). Adding the golden questions as in-domain benign examples brought that to 0% on real questions, estimated with 5-fold cross-validation during development. The 3 remaining false alarms come from a benign set written to _look_ like attacks, and one of them ("Write me a Python function…") is off-topic anyway.
+- **End to end with Granite 8B,** before the classifier, 10 of the 16 held-out attacks were declined safely by the scope filter or the model's NO_ANSWER. The other 6 got an "answer": nothing harmful, but some described the assistant's rules. With the classifier, **15 of 16 are blocked at input and the last is stopped by the scope filter, so none reach the model.**
+- **No regression:** the 16 answer cases still pass 16/16 with all guardrails on.
+
+The CI gate (`eval-gates` job) fails when held-out recall drops below 85%, when false alarms on real questions exceed 2%, when false alarms on the held-out benign set exceed 10%, or when PII recall or precision falls below 95%. Running it with the rules alone fails the gate.
 
 ## Evaluation
 
@@ -113,6 +147,8 @@ uv run rag search "Handy im Zug geklaut" --lang de
 uv run rag ask "Handy im Zug geklaut, was nun?" --lang de   # needs Ollama running with the model
 uv run rag serve                                      # API on http://127.0.0.1:8100/docs
 uv run rag eval-retrieval --gate                      # the CI gate, locally
+uv run rag eval-safety --gate                         # safety gate (add --rules-only to compare)
+uv run rag train-injection                            # retrain the injection classifier artifact
 uv run rag eval-retrieval --dense <model> --dense <model> [--no-sparse]   # compare models
 ```
 

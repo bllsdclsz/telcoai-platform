@@ -48,7 +48,9 @@ class Retriever:
         self.dense, self.sparse = dense, sparse
         self.candidates = candidates  # per retriever, before fusion
 
-    def search(self, query: str, k: int = 5, lang: str | None = None) -> list[Hit]:
+    def search(
+        self, query: str, k: int = 5, lang: str | None = None, vector: list[float] | None = None
+    ) -> list[Hit]:
         """Top ``k`` chunks; ``lang`` restricts results to one language (e.g. the UI locale)."""
         where = (
             models.Filter(
@@ -57,7 +59,7 @@ class Retriever:
             if lang
             else None
         )
-        dense_query = self.dense.embed_query(query)
+        dense_query = vector if vector is not None else self.dense.embed_query(query)
         if self.sparse is None:
             points = self.client.query_points(
                 self.collection, query=dense_query, using=DENSE, query_filter=where, limit=k

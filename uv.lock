@@ -4246,10 +4246,13 @@ dependencies = [
     { name = "fastapi" },
     { name = "fastembed" },
     { name = "litellm" },
+    { name = "pandas" },
+    { name = "pyarrow" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyyaml" },
     { name = "qdrant-client" },
+    { name = "scikit-learn" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -4258,10 +4261,13 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.141.1" },
     { name = "fastembed", specifier = ">=0.8.1" },
     { name = "litellm", specifier = ">=1.103.0" },
+    { name = "pandas", specifier = ">=2.3.3" },
+    { name = "pyarrow", specifier = ">=25.0.1" },
     { name = "pydantic", specifier = ">=2.13.5" },
     { name = "pydantic-settings", specifier = ">=2.15.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "qdrant-client", specifier = ">=1.19.1" },
+    { name = "scikit-learn", specifier = ">=1.9.1" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.54.0" },
 ]
 

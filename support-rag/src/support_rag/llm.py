@@ -1,7 +1,7 @@
-"""Provider-agnostic chat models: LiteLLM routes one interface to Ollama, Anthropic, OpenAI, Azure.
+"""Provider-agnostic chat models: LiteLLM routes one interface to local and hosted providers.
 
-Switching provider is configuration, e.g. ``ollama_chat/granite4.2:3b`` (local, default) or
-``anthropic/<model>`` with ``ANTHROPIC_API_KEY`` set.
+Switching provider is configuration, e.g. ``ollama_chat/granite4.2:8b`` (local, default) or
+``azure/<deployment>`` with that provider's API key set.
 """
 
 import re

@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     chunk_max_words: int = 120
     top_k: int = 5
 
-    # Generation. Any LiteLLM model string works, e.g. "anthropic/<model>" with its API key.
+    # Generation. Any LiteLLM model string works, e.g. "azure/<deployment>" with its API key.
     prompts_dir: Path = PACKAGE_DIR / "prompts"
     prompt_version: int | None = None  # None -> latest version
     # Chosen by comparison (support-rag/README.md): newest model with clean, correct answers.
@@ -45,3 +45,6 @@ class Settings(BaseSettings):
     # set), so no real question is refused; it stops 12/24 off-topic questions. The rest are left
     # to the model's NO_ANSWER instruction (second layer). See support-rag/README.md.
     min_retrieval_score: float = 0.78
+
+    # Learned prompt-injection classifier (rag train-injection); None disables it (rules only).
+    injection_classifier: Path | None = PACKAGE_DIR / "models" / "injection_classifier.json"

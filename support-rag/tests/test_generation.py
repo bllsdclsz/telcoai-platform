@@ -52,13 +52,13 @@ def test_prompt_contains_numbered_sources_language_and_question(
 
 
 def test_answer_returns_only_the_sources_it_cites(client: QdrantClient, settings: Settings) -> None:
-    bot, _ = assistant(client, settings, "It costs CHF 40 [2]. Block it first [2].")
+    bot, _ = assistant(client, settings, "Block it first [2]. Then order a new one [2].")
     answer = bot.ask(QUESTION, "en")
 
     assert answer.answered and answer.reason == "answered"
     assert [s.n for s in answer.cited] == [2]
     assert len(answer.retrieved) >= 2
-    assert answer.prompt == "answer@v1" and len(answer.prompt_sha256) == 64
+    assert answer.prompt == bot.prompt.ref and len(answer.prompt_sha256) == 64
     assert (answer.model, answer.input_tokens, answer.output_tokens) == ("fake/scripted", 100, 20)
 
 
@@ -128,12 +128,12 @@ def test_prompt_versions_load_by_number_and_latest(tmp_path: Path, settings: Set
 def test_ask_endpoint(client: QdrantClient, settings: Settings) -> None:
     bot, _ = assistant(client, settings, "Ersatz-SIM: CHF 40 [1].")
     with TestClient(create_app(lambda: bot)) as http:
-        assert http.get("/health").json() == {"status": "ok", "prompt": "answer@v1"}
+        assert http.get("/health").json() == {"status": "ok", "prompt": bot.prompt.ref}
         body = http.post("/ask", json={"question": QUESTION, "lang": "de"}).json()
 
     assert body["answered"] is True and body["answer"] == "Ersatz-SIM: CHF 40 [1]."
     assert body["sources"][0]["n"] == 1 and body["sources"][0]["url"].startswith("https://")
-    assert body["prompt"] == "answer@v1" and len(body["request_id"]) == 36
+    assert body["prompt"] == bot.prompt.ref and len(body["request_id"]) == 36
 
 
 @pytest.mark.parametrize(
