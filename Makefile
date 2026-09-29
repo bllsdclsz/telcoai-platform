@@ -1,4 +1,4 @@
-.PHONY: install lint test check mlflow download data train features pipeline promote serve monitor simulate demo-drift up serve-docker ps down
+.PHONY: install lint test check mlflow download data train features pipeline promote serve monitor simulate rag-ingest rag-eval demo-drift up serve-docker ps down
 
 export MLFLOW_DISABLE_AGENT_HINT := 1
 COMPOSE := sh scripts/compose.sh
@@ -11,6 +11,7 @@ lint:
 	uv run ruff check .
 	uv run ruff format --check .
 	uv run mypy churn/src
+	uv run mypy support-rag/src
 
 test:
 	uv run pytest -p no:warnings
@@ -41,6 +42,12 @@ promote:            ## make promote FROM=staging TO=prod APPROVED_BY="Name" [FAI
 
 serve:
 	uv run churn serve
+
+rag-ingest:         ## index the help-center corpus (support-rag)
+	uv run rag ingest
+
+rag-eval:           ## retrieval evaluation gate (support-rag)
+	uv run rag eval-retrieval --gate
 
 monitor:            ## Prefect drift check on recent predictions; retrains on drift
 	uv run churn monitor

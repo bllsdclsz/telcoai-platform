@@ -1,0 +1,35 @@
+category: internet
+updated: 2026-08-01
+translations:
+  en:
+    title: No internet connection
+    body: |
+      First check whether there is a known outage in your area on the outage map in the app or at status.nordalp.example.
+
+      If there is none, restart the Internet-Box: unplug the power for 30 seconds and plug it back in. Also check that the fibre or DSL cable is firmly connected at both ends.
+
+      If the connection is still down, report it in the app chat or by calling 0800 700 700. If an outage caused by Nordalp lasts more than 24 hours, you can request a pro-rata credit of your monthly fee.
+  de:
+    title: Keine Internetverbindung
+    body: |
+      Prüfen Sie zuerst auf der Störungskarte in der App oder unter status.nordalp.example, ob in Ihrer Region eine bekannte Störung vorliegt.
+
+      Falls nicht, starten Sie die Internet-Box neu: Ziehen Sie den Stromstecker für 30 Sekunden aus und stecken Sie ihn wieder ein. Kontrollieren Sie auch, ob das Glasfaser- oder DSL-Kabel an beiden Enden fest eingesteckt ist.
+
+      Besteht die Störung weiterhin, melden Sie sie im App-Chat oder unter 0800 700 700. Dauert eine von Nordalp verursachte Störung länger als 24 Stunden, können Sie eine anteilige Gutschrift Ihrer Monatsgebühr verlangen.
+  fr:
+    title: Pas de connexion Internet
+    body: |
+      Vérifiez d'abord sur la carte des pannes dans l'app ou sur status.nordalp.example s'il y a une panne connue dans votre région.
+
+      Si ce n'est pas le cas, redémarrez l'Internet-Box : débranchez l'alimentation pendant 30 secondes, puis rebranchez-la. Vérifiez aussi que le câble fibre ou DSL est bien branché aux deux extrémités.
+
+      Si la connexion ne revient pas, signalez-le dans le chat de l'app ou au 0800 700 700. Si une panne causée par Nordalp dure plus de 24 heures, vous pouvez demander un crédit au prorata de votre taxe mensuelle.
+  it:
+    title: Nessuna connessione Internet
+    body: |
+      Controlla prima sulla mappa dei guasti nell'app o su status.nordalp.example se c'è un guasto noto nella tua zona.
+
+      Se non c'è, riavvia la Internet-Box: stacca l'alimentazione per 30 secondi e poi ricollegala. Verifica anche che il cavo in fibra o DSL sia ben collegato alle due estremità.
+
+      Se la connessione non torna, segnalalo nella chat dell'app o al numero 0800 700 700. Se un guasto causato da Nordalp dura più di 24 ore, puoi chiedere un accredito pro rata del canone mensile.

@@ -4,27 +4,36 @@ Status as of 2026-09-29.
 
 ## Project 1: `churn/` (Churn prediction MLOps pipeline)
 
-| Capability                                                                                      | Status  | Where                                                    |
-| ----------------------------------------------------------------------------------------------- | ------- | -------------------------------------------------------- |
-| Validated data (pandera), DVC versioning, data hash on every run                                | Done    | `schema.py`, `data.py`, `data/raw/*.dvc`                 |
-| Reproducible training, MLflow tracking, quality gate                                            | Done    | `train.py`                                               |
-| Registry promotion dev → staging → prod, one-command rollback                                   | Done    | `registry.py`                                            |
-| Real-time API with input contract                                                               | Done    | `serve/app.py`                                           |
-| Prefect training flow (prod promotion stays manual)                                             | Done    | `flows.py`                                               |
-| Docker image (non-root), compose stack                                                          | Done    | `churn/Dockerfile`, `docker-compose.yml`                 |
-| CI: lint, types, tests, image build, rules/dashboard validation; SHA-pinned actions; Dependabot | Done    | `.github/`                                               |
-| Prometheus metrics, SLO alert rules, Grafana dashboard, runbook                                 | Done    | `monitoring/`, `docs/runbooks/`                          |
-| Evidently drift detection → automatic retrain to staging                                        | Done    | `drift.py`, `flows.py`                                   |
-| Feast feature store (offline parquet, online Redis), `/predict/by-id`, parity tests             | Done    | `feature_store.py`, `feature_repo/`, `serve/features.py` |
-| Model card per registered version (intended use, lineage, per-group metrics, fairness gaps, blind spots) | Done | `model_card.py` |
-| Prod approval gate: model card + named approver + fairness acknowledgement, recorded on the version | Done | `registry.py` |
-| Optuna tuning (CV on the training split, nested MLflow runs) | Done | `tune.py` |
-| Batch scoring job (nightly retention list)                                                      | Planned |                                                          |
-| Slimmer serving image (currently 944 MB, mostly MLflow)                                         | Planned |                                                          |
+| Capability                                                                                               | Status  | Where                                                    |
+| -------------------------------------------------------------------------------------------------------- | ------- | -------------------------------------------------------- |
+| Validated data (pandera), DVC versioning, data hash on every run                                         | Done    | `schema.py`, `data.py`, `data/raw/*.dvc`                 |
+| Reproducible training, MLflow tracking, quality gate                                                     | Done    | `train.py`                                               |
+| Registry promotion dev → staging → prod, one-command rollback                                            | Done    | `registry.py`                                            |
+| Real-time API with input contract                                                                        | Done    | `serve/app.py`                                           |
+| Prefect training flow (prod promotion stays manual)                                                      | Done    | `flows.py`                                               |
+| Docker image (non-root), compose stack                                                                   | Done    | `churn/Dockerfile`, `docker-compose.yml`                 |
+| CI: lint, types, tests, image build, rules/dashboard validation; SHA-pinned actions; Dependabot          | Done    | `.github/`                                               |
+| Prometheus metrics, SLO alert rules, Grafana dashboard, runbook                                          | Done    | `monitoring/`, `docs/runbooks/`                          |
+| Evidently drift detection → automatic retrain to staging                                                 | Done    | `drift.py`, `flows.py`                                   |
+| Feast feature store (offline parquet, online Redis), `/predict/by-id`, parity tests                      | Done    | `feature_store.py`, `feature_repo/`, `serve/features.py` |
+| Model card per registered version (intended use, lineage, per-group metrics, fairness gaps, blind spots) | Done    | `model_card.py`                                          |
+| Prod approval gate: model card + named approver + fairness acknowledgement, recorded on the version      | Done    | `registry.py`                                            |
+| Optuna tuning (CV on the training split, nested MLflow runs)                                             | Done    | `tune.py`                                                |
+| Batch scoring job (nightly retention list)                                                               | Planned |                                                          |
+| Slimmer serving image (currently 944 MB, mostly MLflow)                                                  | Planned |                                                          |
 
 ## Project 2: `support-rag/` (Multilingual support assistant, DE/FR/IT/EN)
 
-Planned: provider-agnostic LLM layer (LiteLLM, plus Ollama for free local runs and CI), multilingual embeddings with hybrid search, versioned prompts, an evaluation harness (golden set, faithfulness, safety/red-team, per-language) used as a CI gate, guardrails (grounding, PII redaction, human approval for actions), audit logging and tracing, and A/B testing of prompt versions.
+| Capability                                                                                                                          | Status  | Where                                                          |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ------- | -------------------------------------------------------------- |
+| Fictional multilingual help center (21 topics × DE/FR/IT/EN), validated on load                                                     | Done    | `corpus/`, `corpus.py`                                         |
+| Paragraph chunking, ONNX multilingual embeddings, Qdrant (embedded or server), language filter                                      | Done    | `chunking.py`, `embeddings.py`, `index.py`, `retrieve.py`      |
+| Retrieval evaluation (94 golden questions), embedding-model benchmark, CI gate with thresholds                                      | Done    | `evaluate.py`, `eval/`, `.github/workflows/support-rag-ci.yml` |
+| **Generation:** LiteLLM provider layer, local IBM Granite 4.2 via Ollama, versioned prompts, answers with citations, FastAPI `/ask` | Next    |                                                                |
+| **Guardrails:** grounding check, PII redaction, prompt-injection filter, refusal outside scope, human approval for actions          | Planned |                                                                |
+| **Audit & tracing:** MLflow tracing of every request (prompt version, sources, latency)                                             | Planned |                                                                |
+| **Generation evaluation:** faithfulness and correctness (LLM judge), safety/red-team set, answer-language check, CI gate            | Planned |                                                                |
+| A/B testing of prompt versions                                                                                                      | Planned |                                                                |
 
 ## Project 3: `platform/` (IaC, GitOps, enablement)
 

@@ -1,0 +1,35 @@
+category: account
+updated: 2026-04-01
+translations:
+  en:
+    title: Logging in to My Nordalp
+    body: |
+      Log in to the My Nordalp app or website with your email address and password. For your security, every login is confirmed with a code sent to you by SMS (two-step verification).
+
+      If you forgot your password, use the Forgot password link on the login page. The reset link we send you is valid for 1 hour.
+
+      After 5 failed login attempts, your account is locked for 30 minutes. To transfer the account to another person, both people must sign the change of account holder form.
+  de:
+    title: Anmelden bei My Nordalp
+    body: |
+      Melden Sie sich in der App oder auf der Website My Nordalp mit Ihrer E-Mail-Adresse und Ihrem Passwort an. Zu Ihrer Sicherheit wird jede Anmeldung mit einem Code bestätigt, den Sie per SMS erhalten (Zwei-Faktor-Verifizierung).
+
+      Haben Sie Ihr Passwort vergessen, nutzen Sie den Link Passwort vergessen auf der Anmeldeseite. Der zugesandte Link zum Zurücksetzen ist 1 Stunde gültig.
+
+      Nach 5 fehlgeschlagenen Anmeldeversuchen wird Ihr Konto für 30 Minuten gesperrt. Um das Konto auf eine andere Person zu übertragen, müssen beide Personen das Formular für den Inhaberwechsel unterschreiben.
+  fr:
+    title: Se connecter à My Nordalp
+    body: |
+      Connectez-vous à l'app ou au site My Nordalp avec votre adresse e-mail et votre mot de passe. Pour votre sécurité, chaque connexion est confirmée par un code envoyé par SMS (vérification en deux étapes).
+
+      Si vous avez oublié votre mot de passe, utilisez le lien Mot de passe oublié sur la page de connexion. Le lien de réinitialisation que nous vous envoyons est valable 1 heure.
+
+      Après 5 tentatives de connexion échouées, votre compte est bloqué pendant 30 minutes. Pour transférer le compte à une autre personne, les deux personnes doivent signer le formulaire de changement de titulaire.
+  it:
+    title: Accedere a My Nordalp
+    body: |
+      Accedi all'app o al sito My Nordalp con il tuo indirizzo e-mail e la password. Per la tua sicurezza, ogni accesso viene confermato con un codice inviato via SMS (verifica in due passaggi).
+
+      Se hai dimenticato la password, usa il link Password dimenticata nella pagina di accesso. Il link di reimpostazione che ti inviamo è valido 1 ora.
+
+      Dopo 5 tentativi di accesso falliti, il conto viene bloccato per 30 minuti. Per trasferire il conto a un'altra persona, entrambe le persone devono firmare il modulo di cambio titolare.

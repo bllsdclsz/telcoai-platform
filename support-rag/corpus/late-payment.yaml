@@ -1,0 +1,35 @@
+category: billing
+updated: 2026-06-30
+translations:
+  en:
+    title: Reminders and late payment
+    body: |
+      If an invoice is not paid on time, you receive a first reminder 10 days after the due date; it is free of charge. If the amount is still open 10 days later, a second reminder follows with a fee of CHF 30.
+
+      If the invoice remains unpaid 10 days after the second reminder, your services are restricted: outgoing calls and mobile data are blocked. Emergency numbers 112, 117, 118 and 144 always remain available.
+
+      Services are unblocked within 24 hours after payment. If you have difficulty paying, contact us before the second reminder; we can offer a payment plan.
+  de:
+    title: Mahnungen und Zahlungsverzug
+    body: |
+      Wird eine Rechnung nicht rechtzeitig bezahlt, erhalten Sie 10 Tage nach Fälligkeit eine erste Mahnung; diese ist kostenlos. Ist der Betrag 10 Tage später noch offen, folgt eine zweite Mahnung mit einer Gebühr von CHF 30.
+
+      Bleibt die Rechnung 10 Tage nach der zweiten Mahnung unbezahlt, werden Ihre Dienste eingeschränkt: Ausgehende Anrufe und mobile Daten werden gesperrt. Die Notrufnummern 112, 117, 118 und 144 bleiben immer erreichbar.
+
+      Die Dienste werden innert 24 Stunden nach der Zahlung wieder freigeschaltet. Haben Sie Mühe mit der Zahlung, melden Sie sich vor der zweiten Mahnung; wir bieten Ihnen eine Ratenzahlung an.
+  fr:
+    title: Rappels et retards de paiement
+    body: |
+      Si une facture n'est pas payée à temps, vous recevez un premier rappel 10 jours après l'échéance ; il est gratuit. Si le montant est toujours impayé 10 jours plus tard, un deuxième rappel suit avec des frais de CHF 30.
+
+      Si la facture reste impayée 10 jours après le deuxième rappel, vos services sont restreints : les appels sortants et les données mobiles sont bloqués. Les numéros d'urgence 112, 117, 118 et 144 restent toujours accessibles.
+
+      Les services sont débloqués dans les 24 heures suivant le paiement. Si vous avez des difficultés de paiement, contactez-nous avant le deuxième rappel ; nous pouvons vous proposer un plan de paiement.
+  it:
+    title: Solleciti e ritardi di pagamento
+    body: |
+      Se una fattura non viene pagata in tempo, ricevi un primo sollecito 10 giorni dopo la scadenza; è gratuito. Se l'importo è ancora scoperto 10 giorni dopo, segue un secondo sollecito con una tassa di CHF 30.
+
+      Se la fattura resta non pagata 10 giorni dopo il secondo sollecito, i servizi vengono limitati: chiamate in uscita e dati mobili vengono bloccati. I numeri di emergenza 112, 117, 118 e 144 restano sempre raggiungibili.
+
+      I servizi vengono sbloccati entro 24 ore dal pagamento. Se hai difficoltà a pagare, contattaci prima del secondo sollecito; possiamo proporti un piano di pagamento rateale.

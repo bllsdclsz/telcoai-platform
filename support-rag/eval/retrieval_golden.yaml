@@ -1,0 +1,461 @@
+# Golden questions for retrieval: phrased as customers ask, avoiding article titles' wording.
+# Each question must retrieve a chunk of `topic`. The last block holds deliberately confusable
+# questions (topics that share vocabulary).
+
+# --- roaming-eu
+- {
+    q: "How much data can I use when I'm on holiday in Italy?",
+    lang: en,
+    topic: roaming-eu,
+  }
+- {
+    q: "Kann ich in Frankreich gratis telefonieren mit meinem Abo?",
+    lang: de,
+    topic: roaming-eu,
+  }
+- {
+    q: "Combien de données puis-je utiliser en Espagne avec Swiss+ ?",
+    lang: fr,
+    topic: roaming-eu,
+  }
+- {
+    q: "Come disattivo il roaming prima di andare in Germania?",
+    lang: it,
+    topic: roaming-eu,
+  }
+# --- roaming-worldwide
+- {
+    q: "What does a data package for my trip to New York cost?",
+    lang: en,
+    topic: roaming-worldwide,
+  }
+- {
+    q: "Warum wurde mein Internet in Thailand plötzlich gesperrt?",
+    lang: de,
+    topic: roaming-worldwide,
+  }
+- {
+    q: "Je pars au Canada, quelle option pour internet ?",
+    lang: fr,
+    topic: roaming-worldwide,
+  }
+- {
+    q: "Quanto costa navigare in Giappone senza pacchetto?",
+    lang: it,
+    topic: roaming-worldwide,
+  }
+# --- esim-activation
+- {
+    q: "I want to get rid of the plastic SIM card, how do I do that?",
+    lang: en,
+    topic: esim-activation,
+  }
+- {
+    q: "Wo finde ich den QR-Code für die eSIM?",
+    lang: de,
+    topic: esim-activation,
+  }
+- {
+    q: "J'ai un nouveau téléphone, comment y mettre mon eSIM ?",
+    lang: fr,
+    topic: esim-activation,
+  }
+- {
+    q: "Quanto tempo ci vuole per ricevere il codice QR della eSIM?",
+    lang: it,
+    topic: esim-activation,
+  }
+# --- sim-lost-stolen
+- {
+    q: "Someone stole my phone on the train, what should I do?",
+    lang: en,
+    topic: sim-lost-stolen,
+  }
+- {
+    q: "Ich habe mein Handy verloren, wie sperre ich die Karte?",
+    lang: de,
+    topic: sim-lost-stolen,
+  }
+- {
+    q: "Combien coûte une nouvelle carte SIM après une perte ?",
+    lang: fr,
+    topic: sim-lost-stolen,
+  }
+- {
+    q: "Mi hanno rubato il cellulare, posso avere subito una nuova SIM?",
+    lang: it,
+    topic: sim-lost-stolen,
+  }
+# --- invoice-explained
+- {
+    q: "Why is my first bill so much higher than expected?",
+    lang: en,
+    topic: invoice-explained,
+  }
+- {
+    q: "Wann kommt die Rechnung und bis wann muss ich zahlen?",
+    lang: de,
+    topic: invoice-explained,
+  }
+- {
+    q: "Pourquoi l'abonnement est-il facturé pour le mois prochain ?",
+    lang: fr,
+    topic: invoice-explained,
+  }
+- {
+    q: "Quale periodo copre la fattura mensile?",
+    lang: it,
+    topic: invoice-explained,
+  }
+# --- payment-methods
+- {
+    q: "Can I pay my bill with my Visa card automatically?",
+    lang: en,
+    topic: payment-methods,
+  }
+- { q: "Kostet die Papierrechnung etwas?", lang: de, topic: payment-methods }
+- { q: "Comment passer à eBill ?", lang: fr, topic: payment-methods }
+- {
+    q: "Posso pagare con addebito diretto LSV?",
+    lang: it,
+    topic: payment-methods,
+  }
+# --- late-payment
+- {
+    q: "I forgot to pay and got a reminder, is there a fee?",
+    lang: en,
+    topic: late-payment,
+  }
+- {
+    q: "Warum kann ich nicht mehr telefonieren? Ich habe die Rechnung nicht bezahlt.",
+    lang: de,
+    topic: late-payment,
+  }
+- {
+    q: "Je n'arrive pas à payer ma facture ce mois-ci, que faire ?",
+    lang: fr,
+    topic: late-payment,
+  }
+- { q: "Quanto costa il secondo sollecito?", lang: it, topic: late-payment }
+# --- contract-cancellation
+- {
+    q: "What is the notice period to end my subscription?",
+    lang: en,
+    topic: contract-cancellation,
+  }
+- {
+    q: "Was kostet es, wenn ich vor Ablauf der Mindestdauer kündige?",
+    lang: de,
+    topic: contract-cancellation,
+  }
+- {
+    q: "Comment mettre fin à mon abonnement Nordalp ?",
+    lang: fr,
+    topic: contract-cancellation,
+  }
+- {
+    q: "Entro quanto ricevo la conferma della disdetta?",
+    lang: it,
+    topic: contract-cancellation,
+  }
+# --- number-porting
+- {
+    q: "I'm switching to another operator, can I keep my phone number?",
+    lang: en,
+    topic: number-porting,
+  }
+- {
+    q: "Wie lange dauert es, meine Nummer zu Nordalp mitzunehmen?",
+    lang: de,
+    topic: number-porting,
+  }
+- {
+    q: "Est-ce que je perds mon crédit prépayé si je change d'opérateur ?",
+    lang: fr,
+    topic: number-porting,
+  }
+- {
+    q: "Devo disdire io il vecchio contratto se porto il numero?",
+    lang: it,
+    topic: number-porting,
+  }
+# --- router-setup
+- {
+    q: "The light on my box is red, what does it mean?",
+    lang: en,
+    topic: router-setup,
+  }
+- { q: "Wo steht das WLAN-Passwort?", lang: de, topic: router-setup }
+- {
+    q: "Comment brancher la nouvelle box internet ?",
+    lang: fr,
+    topic: router-setup,
+  }
+- {
+    q: "La spia della box lampeggia bianca da qualche minuto, è normale?",
+    lang: it,
+    topic: router-setup,
+  }
+# --- wifi-slow
+- {
+    q: "My wifi is terrible in the bedroom upstairs",
+    lang: en,
+    topic: wifi-slow,
+  }
+- { q: "Soll ich 2,4 oder 5 GHz verwenden?", lang: de, topic: wifi-slow }
+- {
+    q: "Le wifi est très lent dans mon appartement, des conseils ?",
+    lang: fr,
+    topic: wifi-slow,
+  }
+- { q: "Quanto costa il ripetitore Wi-Fi?", lang: it, topic: wifi-slow }
+# --- internet-outage
+- {
+    q: "Internet has been down since yesterday, do I get money back?",
+    lang: en,
+    topic: internet-outage,
+  }
+- {
+    q: "Gibt es gerade eine Störung in Zürich?",
+    lang: de,
+    topic: internet-outage,
+  }
+- {
+    q: "Plus d'internet à la maison depuis ce matin",
+    lang: fr,
+    topic: internet-outage,
+  }
+- {
+    q: "Come riavvio la box se internet non funziona?",
+    lang: it,
+    topic: internet-outage,
+  }
+# --- tv-replay
+- {
+    q: "Can I watch last week's episode that I missed?",
+    lang: en,
+    topic: tv-replay,
+  }
+- {
+    q: "Auf wie vielen Geräten kann ich fernsehen?",
+    lang: de,
+    topic: tv-replay,
+  }
+- {
+    q: "Ma TV-Box est figée, comment la redémarrer ?",
+    lang: fr,
+    topic: tv-replay,
+  }
+- {
+    q: "Quante ore di registrazione ho a disposizione?",
+    lang: it,
+    topic: tv-replay,
+  }
+# --- data-usage
+- {
+    q: "How do I see how many gigabytes I have left this month?",
+    lang: en,
+    topic: data-usage,
+  }
+- {
+    q: "Mein Internet am Handy ist so langsam geworden, habe ich alles verbraucht?",
+    lang: de,
+    topic: data-usage,
+  }
+- { q: "Comment acheter plus de données ?", lang: fr, topic: data-usage }
+- {
+    q: "A che numero mando l'SMS per sapere i dati rimanenti?",
+    lang: it,
+    topic: data-usage,
+  }
+# --- plan-change
+- {
+    q: "I want a cheaper subscription, when does it start?",
+    lang: en,
+    topic: plan-change,
+  }
+- {
+    q: "Kann ich sofort auf ein grösseres Abo wechseln?",
+    lang: de,
+    topic: plan-change,
+  }
+- {
+    q: "Changer d'offre relance-t-il la durée minimale ?",
+    lang: fr,
+    topic: plan-change,
+  }
+- {
+    q: "Quante volte posso cambiare abbonamento?",
+    lang: it,
+    topic: plan-change,
+  }
+# --- moving-house
+- {
+    q: "We are moving to Bern next month, what happens to our internet?",
+    lang: en,
+    topic: moving-house,
+  }
+- { q: "Wie früh muss ich meinen Umzug melden?", lang: de, topic: moving-house }
+- {
+    q: "Je déménage et Nordalp n'est pas disponible à la nouvelle adresse",
+    lang: fr,
+    topic: moving-house,
+  }
+- {
+    q: "Quanto costa il tecnico per il trasloco?",
+    lang: it,
+    topic: moving-house,
+  }
+# --- international-calls
+- {
+    q: "How much is a call from Zurich to my family in Portugal?",
+    lang: en,
+    topic: international-calls,
+  }
+- {
+    q: "Gibt es eine Option für günstige Anrufe ins Ausland?",
+    lang: de,
+    topic: international-calls,
+  }
+- {
+    q: "Combien coûte un SMS vers un numéro français ?",
+    lang: fr,
+    topic: international-calls,
+  }
+- {
+    q: "Quanto costa chiamare gli Stati Uniti dalla Svizzera?",
+    lang: it,
+    topic: international-calls,
+  }
+# --- third-party-blocking
+- {
+    q: "There is a game subscription on my bill that I never ordered",
+    lang: en,
+    topic: third-party-blocking,
+  }
+- {
+    q: "Wie sperre ich 0900-Nummern für mein Kind?",
+    lang: de,
+    topic: third-party-blocking,
+  }
+- {
+    q: "Comment bloquer les services payants de tiers ?",
+    lang: fr,
+    topic: third-party-blocking,
+  }
+- {
+    q: "Ho un addebito per suonerie che non ho mai chiesto",
+    lang: it,
+    topic: third-party-blocking,
+  }
+# --- privacy-data
+- { q: "How long do you keep my call history?", lang: en, topic: privacy-data }
+- {
+    q: "Ich möchte wissen, welche Daten Nordalp über mich hat",
+    lang: de,
+    topic: privacy-data,
+  }
+- {
+    q: "Je ne veux plus recevoir de publicité de Nordalp",
+    lang: fr,
+    topic: privacy-data,
+  }
+- {
+    q: "Come chiedo una copia dei miei dati personali?",
+    lang: it,
+    topic: privacy-data,
+  }
+# --- account-login
+- {
+    q: "I can't remember my password for the app",
+    lang: en,
+    topic: account-login,
+  }
+- {
+    q: "Mein Konto ist gesperrt nach mehreren Versuchen",
+    lang: de,
+    topic: account-login,
+  }
+- {
+    q: "Je ne reçois pas le code SMS pour me connecter",
+    lang: fr,
+    topic: account-login,
+  }
+- {
+    q: "Come trasferisco l'abbonamento a mio figlio?",
+    lang: it,
+    topic: account-login,
+  }
+# --- device-repair
+- {
+    q: "My phone's screen stopped working after a month, is it covered?",
+    lang: en,
+    topic: device-repair,
+  }
+- {
+    q: "Bekomme ich ein Ersatzgerät während der Reparatur?",
+    lang: de,
+    topic: device-repair,
+  }
+- {
+    q: "Mon téléphone est tombé dans l'eau, la garantie s'applique ?",
+    lang: fr,
+    topic: device-repair,
+  }
+- {
+    q: "Quanto dura la riparazione del telefono?",
+    lang: it,
+    topic: device-repair,
+  }
+
+# --- confusable questions
+- {
+    q: "My mobile internet is slow in Switzerland after using a lot of data",
+    lang: en,
+    topic: data-usage,
+  }
+- {
+    q: "My mobile internet got very slow in Spain after a few days",
+    lang: en,
+    topic: roaming-eu,
+  }
+- {
+    q: "Ich wechsle den Anbieter, muss ich bei euch kündigen?",
+    lang: de,
+    topic: number-porting,
+  }
+- {
+    q: "Ich will mein Abo ganz beenden, ohne neuen Anbieter",
+    lang: de,
+    topic: contract-cancellation,
+  }
+- {
+    q: "Combien coûte un appel vers les États-Unis depuis Genève ?",
+    lang: fr,
+    topic: international-calls,
+  }
+- {
+    q: "Combien coûte un appel quand je suis aux États-Unis ?",
+    lang: fr,
+    topic: roaming-worldwide,
+  }
+- {
+    q: "Ho perso il telefono, quanto costa una nuova eSIM?",
+    lang: it,
+    topic: sim-lost-stolen,
+  }
+- {
+    q: "Voglio attivare la eSIM al posto della SIM fisica",
+    lang: it,
+    topic: esim-activation,
+  }
+- {
+    q: "Why was my phone line blocked although I pay by eBill?",
+    lang: en,
+    topic: late-payment,
+  }
+- {
+    q: "Warum ist auf meiner Rechnung eine Gebühr von CHF 3.50?",
+    lang: de,
+    topic: payment-methods,
+  }

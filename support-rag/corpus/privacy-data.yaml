@@ -1,0 +1,35 @@
+category: account
+updated: 2026-04-01
+translations:
+  en:
+    title: Your data and privacy
+    body: |
+      Nordalp processes your personal data in accordance with the Swiss Federal Act on Data Protection (FADP).
+
+      You can request a free copy of the personal data we hold about you with the privacy form on our website; we answer within 30 days. Call detail records are kept for 6 months, as required by law.
+
+      You can withdraw your consent to marketing communication at any time in the app under Privacy.
+  de:
+    title: Ihre Daten und Datenschutz
+    body: |
+      Nordalp bearbeitet Ihre Personendaten gemäss dem Schweizer Datenschutzgesetz (DSG).
+
+      Mit dem Datenschutzformular auf unserer Website können Sie kostenlos eine Kopie der Personendaten verlangen, die wir über Sie speichern; wir antworten innert 30 Tagen. Verbindungsdaten werden gemäss gesetzlicher Pflicht 6 Monate aufbewahrt.
+
+      Ihre Einwilligung zu Marketingmitteilungen können Sie jederzeit in der App unter Datenschutz widerrufen.
+  fr:
+    title: Vos données et la protection de la vie privée
+    body: |
+      Nordalp traite vos données personnelles conformément à la loi fédérale suisse sur la protection des données (LPD).
+
+      Avec le formulaire de protection des données sur notre site web, vous pouvez demander gratuitement une copie des données personnelles que nous détenons à votre sujet ; nous répondons dans les 30 jours. Les données de connexion sont conservées 6 mois, comme l'exige la loi.
+
+      Vous pouvez retirer à tout moment votre consentement aux communications marketing dans l'app sous Confidentialité.
+  it:
+    title: I tuoi dati e la privacy
+    body: |
+      Nordalp tratta i tuoi dati personali in conformità con la legge federale svizzera sulla protezione dei dati (LPD).
+
+      Con il modulo sulla protezione dei dati sul nostro sito puoi richiedere gratuitamente una copia dei dati personali che conserviamo su di te; rispondiamo entro 30 giorni. I dati di collegamento sono conservati per 6 mesi, come previsto dalla legge.
+
+      Puoi revocare in qualsiasi momento il consenso alle comunicazioni di marketing nell'app in Privacy.

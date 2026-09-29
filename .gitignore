@@ -11,3 +11,4 @@ mlartifacts/
 data/predictions/
 data/reports/
 data/feast/
+data/qdrant/

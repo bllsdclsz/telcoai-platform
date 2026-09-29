@@ -1,0 +1,35 @@
+category: billing
+updated: 2026-06-30
+translations:
+  en:
+    title: Understanding your invoice
+    body: |
+      You receive one invoice per month. It is issued on the 5th and is due within 30 days. The billing period runs from the 1st to the last day of the month.
+
+      Monthly plan fees are charged in advance for the coming month, while usage such as roaming or calls to foreign numbers is charged for the previous month. Third-party services and one-off charges, such as a replacement SIM, are listed separately.
+
+      Your first invoice often contains pro-rata amounts, because your plan started in the middle of a month. That is why it can be higher than the following ones.
+  de:
+    title: Ihre Rechnung verstehen
+    body: |
+      Sie erhalten eine Rechnung pro Monat. Sie wird am 5. ausgestellt und ist innert 30 Tagen zahlbar. Die Abrechnungsperiode dauert vom 1. bis zum letzten Tag des Monats.
+
+      Monatliche Abogebühren werden im Voraus für den kommenden Monat verrechnet, die Nutzung wie Roaming oder Anrufe auf ausländische Nummern für den Vormonat. Drittanbieterdienste und einmalige Gebühren, etwa für eine Ersatz-SIM, sind separat aufgeführt.
+
+      Ihre erste Rechnung enthält oft anteilige Beträge, weil Ihr Abo mitten im Monat begann. Deshalb kann sie höher sein als die folgenden.
+  fr:
+    title: Comprendre votre facture
+    body: |
+      Vous recevez une facture par mois. Elle est émise le 5 et payable dans les 30 jours. La période de facturation va du 1er au dernier jour du mois.
+
+      Les frais mensuels d'abonnement sont facturés à l'avance pour le mois suivant, tandis que l'utilisation, comme le roaming ou les appels vers des numéros étrangers, est facturée pour le mois précédent. Les services de tiers et les frais uniques, par exemple une carte SIM de remplacement, sont indiqués séparément.
+
+      Votre première facture contient souvent des montants au prorata, car votre abonnement a commencé en milieu de mois. C'est pourquoi elle peut être plus élevée que les suivantes.
+  it:
+    title: Capire la tua fattura
+    body: |
+      Ricevi una fattura al mese. Viene emessa il 5 ed è pagabile entro 30 giorni. Il periodo di fatturazione va dal 1° all'ultimo giorno del mese.
+
+      I canoni mensili dell'abbonamento sono addebitati in anticipo per il mese successivo, mentre l'utilizzo, come il roaming o le chiamate verso numeri esteri, è addebitato per il mese precedente. I servizi di terzi e le spese una tantum, ad esempio una SIM sostitutiva, sono elencati separatamente.
+
+      La prima fattura contiene spesso importi pro rata, perché l'abbonamento è iniziato a metà mese. Per questo può essere più alta delle successive.

@@ -1,0 +1,35 @@
+category: billing
+updated: 2026-06-30
+translations:
+  en:
+    title: Payment methods
+    body: |
+      You can pay your invoice free of charge by eBill in your e-banking, by direct debit (LSV+ or Debit Direct) or automatically by credit card.
+
+      If you prefer a paper invoice with a QR payment slip, a fee of CHF 3.50 is charged per invoice.
+
+      To change your payment method, open the app and go to Billing > Payment method. The change applies from the next invoice.
+  de:
+    title: Zahlungsarten
+    body: |
+      Sie können Ihre Rechnung kostenlos per eBill in Ihrem E-Banking, per Lastschriftverfahren (LSV+ oder Debit Direct) oder automatisch per Kreditkarte bezahlen.
+
+      Wünschen Sie eine Papierrechnung mit QR-Einzahlungsschein, wird pro Rechnung eine Gebühr von CHF 3.50 verrechnet.
+
+      Um die Zahlungsart zu ändern, öffnen Sie die App und gehen zu Rechnungen > Zahlungsart. Die Änderung gilt ab der nächsten Rechnung.
+  fr:
+    title: Modes de paiement
+    body: |
+      Vous pouvez payer votre facture gratuitement par eBill dans votre e-banking, par prélèvement automatique (LSV+ ou Debit Direct) ou automatiquement par carte de crédit.
+
+      Si vous préférez une facture papier avec bulletin de versement QR, des frais de CHF 3.50 sont facturés par facture.
+
+      Pour changer de mode de paiement, ouvrez l'app et allez dans Factures > Mode de paiement. Le changement s'applique dès la prochaine facture.
+  it:
+    title: Metodi di pagamento
+    body: |
+      Puoi pagare la fattura gratuitamente con eBill nel tuo e-banking, con addebito diretto (LSV+ o Debit Direct) o automaticamente con carta di credito.
+
+      Se preferisci una fattura cartacea con polizza di versamento QR, viene addebitata una tassa di CHF 3.50 per fattura.
+
+      Per cambiare metodo di pagamento, apri l'app e vai su Fatture > Metodo di pagamento. La modifica vale a partire dalla prossima fattura.
