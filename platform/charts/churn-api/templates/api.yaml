@@ -28,10 +28,10 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: api
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{ include "churn.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-            - { name: CHURN_MLFLOW_TRACKING_URI, value: {{ include "churn.mlflowUrl" . | quote }} }
+            - { name: CHURN_MLFLOW_TRACKING_URI, value: {{ .Values.registry.url | quote }} }
             - { name: CHURN_SERVING_ALIAS, value: {{ .Values.api.servingAlias | quote }} }
             - { name: CHURN_PREDICTION_LOG_DIR, value: /var/lib/churn/predictions }
             - { name: HOME, value: /tmp }

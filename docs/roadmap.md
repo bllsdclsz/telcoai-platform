@@ -42,10 +42,12 @@ Status as of 2026-09-29.
 | ------------------------------------------------------------------------------------------------------ | ------- | ------------------------------------------------------------- |
 | Separate k3d cluster (the Rancher Desktop cluster belongs to another project), isolated kubeconfig     | Done    | `platform/k3d/`, `platform/scripts/k3d.sh`, `make cluster-up` |
 | Terraform: dev/test/prod namespaces with quotas and container defaults, Argo CD, app-of-apps root      | Done    | `platform/terraform/`                                         |
-| Helm chart for the churn stack (MLflow registry + API), dev bootstraps its own model                   | Done    | `platform/charts/churn-stack/`                                |
+| Helm charts: shared MLflow registry, churn API serving one alias per environment; dev bootstraps its own model | Done | `platform/charts/` |
 | Argo CD deploys dev from `main`; the churn image is published to GHCR on every merge                   | Done    | `platform/gitops/`, `.github/workflows/churn-ci.yml`          |
 | Platform CI: helm lint, kubeconform schema checks, terraform fmt/validate                              | Done    | `.github/workflows/platform-ci.yml`                           |
-| Test and prod environments; promotion = a PR that pins an immutable image tag; rollback = `git revert` | Next    |                                                               |
+| Test and prod: ApplicationSet (one app per env folder), dev/test/prod serve @dev/@staging/@prod of one registry | Done | `platform/gitops/` |
+| Image promotion by PR (immutable `sha-` tags, prod only after test, checked in CI); rollback = revert | Done | `make promote-image`, `platform/scripts/check-promotions.sh` |
+| API starts unready and polls the registry instead of exiting when its alias has no model | Next | `churn/src/churn/serve/` |
 | Support assistant chart (Qdrant, Ollama)                                                               | Planned |                                                               |
 | Copier service template                                                                                | Planned |                                                               |
 | SLO report, runbooks, a postmortem                                                                     | Planned |                                                               |

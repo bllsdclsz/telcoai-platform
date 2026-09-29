@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: churn-dev
+  name: mlflow-registry
   namespace: argocd
   finalizers: [resources-finalizer.argocd.argoproj.io]
 spec:
@@ -9,12 +9,11 @@ spec:
   source:
     repoURL: https://github.com/bllsdclsz/telcoai-platform.git
     targetRevision: main
-    path: platform/charts/churn-stack
+    path: platform/charts/mlflow-registry
     helm:
-      releaseName: churn
-      valueFiles: [../../gitops/envs/dev/churn-stack.yaml]
+      releaseName: mlflow
   destination:
     server: https://kubernetes.default.svc
-    namespace: telcoai-dev
+    namespace: telcoai-registry
   syncPolicy:
     automated: { prune: true, selfHeal: true }

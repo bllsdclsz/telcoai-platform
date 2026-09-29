@@ -1,9 +1,7 @@
 {{- if .Values.bootstrapModel.enabled }}
-{{- if not .Values.bootstrapModel.approvedBy }}
-{{- fail "bootstrapModel.approvedBy is required: promotions to prod always carry a named approver" }}
-{{- end }}
-# Dev only: download the public dataset, train (the quality gate still applies), and promote
-# the result to the serving alias, so a fresh environment serves a model.
+# Dev only: when the registry has no model registered as @dev yet, download the public
+# dataset and train. Training registers the model as @dev only if it passes the quality gate;
+# this job never promotes.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -31,24 +29,22 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: bootstrap
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{ include "churn.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-            - { name: CHURN_MLFLOW_TRACKING_URI, value: {{ include "churn.mlflowUrl" . | quote }} }
+            - { name: CHURN_MLFLOW_TRACKING_URI, value: {{ .Values.registry.url | quote }} }
             - { name: CHURN_DATA_DIR, value: /tmp/data }
             - { name: HOME, value: /tmp }
-            - { name: MLFLOW_TRACKING_URI, value: {{ include "churn.mlflowUrl" . | quote }} }
+            - { name: MLFLOW_TRACKING_URI, value: {{ .Values.registry.url | quote }} }
             - { name: MLFLOW_DISABLE_AGENT_HINT, value: "1" }
           command: [sh, -c]
           args:
             - >-
-              until python -c "import urllib.request; urllib.request.urlopen('{{ include "churn.mlflowUrl" . }}/health')";
-              do echo waiting for mlflow; sleep 5; done;
-              if python -c "from mlflow import MlflowClient; MlflowClient().get_model_version_by_alias('{{ .Values.bootstrapModel.modelName }}', '{{ .Values.api.servingAlias }}')" 2>/dev/null;
-              then echo "{{ .Values.api.servingAlias }} alias already set, nothing to do"; exit 0; fi;
-              churn download && churn train &&
-              churn promote --from dev --to {{ .Values.api.servingAlias }}
-              --approved-by {{ .Values.bootstrapModel.approvedBy | quote }} --fairness-reviewed
+              until python -c "import urllib.request; urllib.request.urlopen('{{ .Values.registry.url }}/health')";
+              do echo waiting for the registry; sleep 5; done;
+              if python -c "from mlflow import MlflowClient; MlflowClient().get_model_version_by_alias('{{ .Values.registry.modelName }}', 'dev')" 2>/dev/null;
+              then echo "a model is already registered as @dev, nothing to do"; exit 0; fi;
+              churn download && churn train
           resources:
             requests: { cpu: 250m, memory: 768Mi }
             limits: { cpu: "1", memory: 1536Mi }

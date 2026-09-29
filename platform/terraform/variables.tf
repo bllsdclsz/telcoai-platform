@@ -4,8 +4,8 @@ variable "kubeconfig" {
   default     = "../.kube/telcoai.yaml"
 }
 
-variable "environments" {
-  description = "One namespace per environment, with its resource budget."
+variable "namespaces" {
+  description = "Namespaces with their resource budgets: one per environment, plus the shared model registry."
   type = map(object({
     cpu_requests    = string
     memory_requests = string
@@ -17,6 +17,9 @@ variable "environments" {
     dev  = { cpu_requests = "2", memory_requests = "4Gi", cpu_limits = "4", memory_limits = "6Gi", pods = 20 }
     test = { cpu_requests = "2", memory_requests = "4Gi", cpu_limits = "4", memory_limits = "6Gi", pods = 20 }
     prod = { cpu_requests = "3", memory_requests = "6Gi", cpu_limits = "6", memory_limits = "8Gi", pods = 30 }
+    # One MLflow registry for all environments: each environment serves its own alias
+    # (dev -> @dev, test -> @staging, prod -> @prod), so a model is promoted, never copied.
+    registry = { cpu_requests = "500m", memory_requests = "1Gi", cpu_limits = "2", memory_limits = "2Gi", pods = 5 }
   }
 }
 

@@ -1,0 +1,34 @@
+# One Application per folder in platform/gitops/envs: adding an environment is adding a folder
+# (and its namespace in Terraform).
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: churn-api
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/bllsdclsz/telcoai-platform.git
+        revision: main
+        directories:
+          - path: platform/gitops/envs/*
+  template:
+    metadata:
+      name: "churn-api-{{ .path.basename }}"
+      finalizers: [resources-finalizer.argocd.argoproj.io]
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/bllsdclsz/telcoai-platform.git
+        targetRevision: main
+        path: platform/charts/churn-api
+        helm:
+          releaseName: churn
+          valueFiles: ["../../gitops/envs/{{ .path.basename }}/churn-api.yaml"]
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "telcoai-{{ .path.basename }}"
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }

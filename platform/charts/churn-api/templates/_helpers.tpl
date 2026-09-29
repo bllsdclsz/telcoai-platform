@@ -7,4 +7,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
 {{- end -}}
 
-{{- define "churn.mlflowUrl" -}}http://{{ include "churn.name" . }}-mlflow:5000{{- end -}}
+{{- define "churn.image" -}}
+{{- $tag := required "image.tag is required (dev: main; test and prod: sha-<commit>)" .Values.image.tag -}}
+{{ .Values.image.repository }}:{{ $tag }}
+{{- end -}}

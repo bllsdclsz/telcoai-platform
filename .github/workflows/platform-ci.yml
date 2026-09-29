@@ -26,24 +26,36 @@ jobs:
         run: |
           curl -sSfL -o kc.tar.gz "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
           tar -xzf kc.tar.gz kubeconform && sudo mv kubeconform /usr/local/bin/
-      - name: Lint and validate every environment's rendered manifests
+      - name: Lint and validate every chart and environment
         run: |
-          for values in platform/gitops/envs/*/churn-stack.yaml; do
+          helm lint --strict platform/charts/mlflow-registry
+          helm template mlflow platform/charts/mlflow-registry -n telcoai-registry \
+            | kubeconform -strict -summary -kubernetes-version 1.35.0
+          for values in platform/gitops/envs/*/churn-api.yaml; do
             echo "::group::$values"
-            helm lint --strict platform/charts/churn-stack -f "$values"
-            helm template churn platform/charts/churn-stack -f "$values" \
+            helm lint --strict platform/charts/churn-api -f "$values"
+            helm template churn platform/charts/churn-api -f "$values" \
               | kubeconform -strict -summary -kubernetes-version 1.35.0
             echo "::endgroup::"
           done
-      - name: Chart defaults refuse a bootstrap without a named approver
+      - name: Chart refuses to render without an image tag
         run: |
-          ! helm template churn platform/charts/churn-stack --set bootstrapModel.enabled=true 2>/dev/null
+          ! helm template churn platform/charts/churn-api 2>/dev/null
       - name: Validate Argo CD Applications
         run: >
           kubeconform -strict -summary
           -schema-location default
           -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
           platform/gitops/apps
+
+  # Test and prod pin immutable tags that exist; prod only runs what has been in test.
+  promotions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the "has been in test" rule reads the history of the test values
+      - run: sh platform/scripts/check-promotions.sh
 
   terraform:
     runs-on: ubuntu-latest

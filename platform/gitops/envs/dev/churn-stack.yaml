@@ -1,8 +1,0 @@
-# Dev environment: follows the latest image built from main, and bootstraps its own model.
-image:
-  tag: main
-  pullPolicy: Always
-
-bootstrapModel:
-  enabled: true
-  approvedBy: dev-bootstrap (automated, dev environment only)

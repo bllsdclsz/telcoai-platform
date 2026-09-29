@@ -1,21 +1,21 @@
-# One namespace per environment. The quota caps what an environment can consume, so a runaway
+# One namespace per environment, plus the shared model registry. The quota caps what an environment can consume, so a runaway
 # deployment in dev can't starve prod; the limit range gives every container defaults, so no
 # pod runs unbounded.
 
 resource "kubernetes_namespace_v1" "env" {
-  for_each = var.environments
+  for_each = var.namespaces
 
   metadata {
     name = "telcoai-${each.key}"
     labels = {
-      "app.kubernetes.io/part-of"   = "telcoai"
-      "telcoai.example/environment" = each.key
+      "app.kubernetes.io/part-of" = "telcoai"
+      "telcoai.example/namespace" = each.key
     }
   }
 }
 
 resource "kubernetes_resource_quota_v1" "env" {
-  for_each = var.environments
+  for_each = var.namespaces
 
   metadata {
     name      = "budget"
@@ -33,7 +33,7 @@ resource "kubernetes_resource_quota_v1" "env" {
 }
 
 resource "kubernetes_limit_range_v1" "env" {
-  for_each = var.environments
+  for_each = var.namespaces
 
   metadata {
     name      = "container-defaults"
