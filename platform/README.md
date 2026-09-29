@@ -38,7 +38,7 @@ make platform-apply   # namespaces, quotas, Argo CD, root app
 make argocd-ui        # prints the admin password, then http://localhost:8081
 ```
 
-Argo CD then deploys the registry and the three environments on its own. In dev, the bootstrap job trains a model (a few minutes on a fresh cluster, mostly image pulls), then the API turns ready. Test and prod stay unready until a person promotes a model:
+Argo CD then deploys the registry and the three environments on its own. In dev, the bootstrap job trains a model (a few minutes on a fresh cluster, mostly image pulls), then the API turns ready. Test and prod run but stay unready (no traffic) until a person promotes a model; the API notices within 30 s:
 
 ```bash
 make registry-ui &    # registry on http://localhost:5001
@@ -78,4 +78,4 @@ curl localhost:18001/health     # {"status":"ok","model_version":"1"}
 
 - **MLflow was OOM-killed at 1.5 GiB.** MLflow 3.x starts a GenAI job runner next to the server: 8 more Python processes, 1.8 GiB in total instead of 0.6 GiB (measured with `docker stats`). The kernel log showed the kills; the container status only said `Error`, exit 137. A model registry does not need the runner, so `MLFLOW_SERVER_ENABLE_JOB_EXECUTION=false`.
 - **Default probes killed a healthy MLflow.** The 1 s default timeout is too short for a Python server starting under a CPU limit. A `startupProbe` covers the slow start, and the liveness probe only starts after it passes.
-- **The API exits when its alias has no model**, so an environment without a promoted model crash-loops, and after a promotion it can take up to the 5-minute back-off before it retries (`kubectl rollout restart` skips the wait). Better: start unready and poll the registry. Planned.
+- **The API used to exit when its alias had no model**, so a fresh environment crash-looped, and after a promotion it could wait out the 5-minute restart back-off. Now it starts unready (`/health` 503, `/livez` 200 for the liveness probe) and follows its alias: on the cluster, moving an alias from version 1 to 2 switched the running pod in about 10 s, with no restart. The same path applies a rollback.

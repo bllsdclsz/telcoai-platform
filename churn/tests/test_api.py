@@ -1,6 +1,7 @@
 import json
+import time
 import urllib.error
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -195,3 +196,79 @@ def test_predict_by_id_rejects_invalid_store_data() -> None:
     bad = {"A-1": customer_payload(Contract="Lifetime")}
     with by_id_client(FakeFeatureClient(bad)) as c:
         assert c.post("/predict/by-id", json={"customer_ids": ["A-1"]}).status_code == 502
+
+
+class FakeRegistry:
+    """Stands in for the MLflow alias: ``version`` is what the alias points to (None: unset)."""
+
+    def __init__(self, model: Any, version: str | None) -> None:
+        self.model, self.version, self.down = model, version, False
+
+    def probe(self) -> str:
+        if self.down or self.version is None:
+            raise ConnectionError("registry unavailable")
+        return self.version
+
+    def load(self) -> LoadedModel:
+        return LoadedModel(model=self.model, version=self.probe())
+
+
+def following_client(registry: FakeRegistry, tmp_path: Path) -> TestClient:
+    app = create_app(
+        loader=registry.load,
+        version_probe=registry.probe,
+        settings=Settings(prediction_log_dir=tmp_path, model_refresh_seconds=0.02),
+    )
+    return TestClient(app)
+
+
+def wait_for(check: Callable[[], bool], timeout: float = 3.0) -> bool:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if check():
+            return True
+        time.sleep(0.02)
+    return False
+
+
+@pytest.fixture(scope="module")
+def small_model() -> Any:
+    df = make_customers()
+    return build_pipeline({"n_estimators": 5}, seed=0).fit(df[FEATURE_COLUMNS], df["Churn"])
+
+
+def test_starts_unready_and_serves_once_a_model_is_promoted(
+    small_model: Any, tmp_path: Path
+) -> None:
+    registry = FakeRegistry(small_model, version=None)
+    with following_client(registry, tmp_path) as c:
+        assert c.get("/livez").status_code == 200
+        health = c.get("/health")
+        assert health.status_code == 503
+        assert health.json() == {"status": "waiting_for_model", "alias": "prod"}
+        assert c.post("/predict", json={"customers": [customer_payload()]}).status_code == 503
+
+        registry.version = "1"
+        assert wait_for(lambda: c.get("/health").status_code == 200)
+        assert c.post("/predict", json={"customers": [customer_payload()]}).status_code == 200
+
+
+def test_follows_the_alias_to_a_new_version(small_model: Any, tmp_path: Path) -> None:
+    registry = FakeRegistry(small_model, version="1")
+    with following_client(registry, tmp_path) as c:
+        assert c.get("/health").json()["model_version"] == "1"
+
+        registry.version = "2"  # promotion (or rollback) moved the alias
+        assert wait_for(lambda: c.get("/health").json().get("model_version") == "2")
+        text = c.get("/metrics").text
+        assert metric_value(text, "churn_model_info", alias="prod", model_version="2") == 1
+        assert 'model_version="1"' not in text
+
+
+def test_registry_outage_keeps_serving_the_current_model(small_model: Any, tmp_path: Path) -> None:
+    registry = FakeRegistry(small_model, version="1")
+    with following_client(registry, tmp_path) as c:
+        registry.down = True
+        time.sleep(0.1)  # several failed checks
+        assert c.get("/health").json() == {"status": "ok", "model_version": "1"}
+        assert c.post("/predict", json={"customers": [customer_payload()]}).status_code == 200

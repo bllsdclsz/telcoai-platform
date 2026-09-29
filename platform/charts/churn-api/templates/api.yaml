@@ -36,18 +36,19 @@ spec:
             - { name: CHURN_PREDICTION_LOG_DIR, value: /var/lib/churn/predictions }
             - { name: HOME, value: /tmp }
           ports: [{ name: http, containerPort: 8000 }]
-          # Loads models:/telco-churn@<alias> at startup: fails until a model is promoted.
+          # /livez: the process answers. /health: a model is loaded. Until the alias has a model
+          # the pod runs but gets no traffic; a later promotion makes it ready without a restart.
           startupProbe:
-            httpGet: { path: /health, port: http }
-            periodSeconds: 10
+            httpGet: { path: /livez, port: http }
+            periodSeconds: 5
             timeoutSeconds: 5
-            failureThreshold: 60
+            failureThreshold: 24
           readinessProbe:
             httpGet: { path: /health, port: http }
             periodSeconds: 10
             timeoutSeconds: 5
           livenessProbe:
-            httpGet: { path: /health, port: http }
+            httpGet: { path: /livez, port: http }
             periodSeconds: 20
             timeoutSeconds: 5
           resources: {{- toYaml .Values.api.resources | nindent 12 }}

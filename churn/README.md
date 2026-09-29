@@ -21,7 +21,7 @@ download ─▶ clean + validate (pandera) ─▶ features ─▶ LightGBM ─�
 - `tune.py`: Optuna search (TPE, seeded) scored by 5-fold CV on the training split only, so the test metrics stay unbiased. Every trial is a nested MLflow run. `churn pipeline --tune-trials 30`
 - `model_card.py`: model card generated for every registered version (Markdown + JSON in MLflow, tags and description on the version). See [Governance](#governance-model-card-and-prod-approval).
 - `registry.py`: alias-based promotion with automatic `<env>-previous` for rollback.
-- `serve/app.py`: FastAPI service that loads `models:/telco-churn@prod` and validates every request field.
+- `serve/app.py`: FastAPI service that serves `models:/telco-churn@prod` and validates every request field. It follows the alias: a promotion or rollback takes effect within `CHURN_MODEL_REFRESH_SECONDS` (30 s) without a restart. `/health` is readiness (503 until a model is loaded), `/livez` is liveness.
 
 ## Feature store (Feast)
 

@@ -20,8 +20,10 @@ class Settings(BaseSettings):
     registered_model_name: str = "telco-churn"
     # Alias assigned to freshly trained models; promotion to staging/prod is a separate step.
     register_alias: str = "dev"
-    # Alias the serving API loads.
+    # Alias the serving API loads, and how often it checks whether the alias moved (a promotion
+    # or rollback). 0 disables the check; the API then keeps the model it started with.
     serving_alias: str = "prod"
+    model_refresh_seconds: float = 30.0
     random_seed: int = 42
     test_size: float = 0.2
     # Quality gate: a model below this ROC AUC is never registered.
