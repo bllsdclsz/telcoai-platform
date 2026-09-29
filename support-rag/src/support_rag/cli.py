@@ -48,6 +48,11 @@ def main(argv: list[str] | None = None) -> None:
     sev.add_argument("--gate", action="store_true", help="exit 1 if below eval/thresholds.yaml")
     sev.add_argument("--rules-only", action="store_true", help="skip the learned classifier")
     sub.add_parser("train-injection", help="train the prompt-injection classifier artifact")
+    aud = sub.add_parser("audit", help="query the request traces (audit log)")
+    aud.add_argument("--reason", help="e.g. blocked_input, ungrounded, answered")
+    aud.add_argument("--lang", choices=LANGUAGES)
+    aud.add_argument("--request-id", help="the request_id returned by /ask")
+    aud.add_argument("--limit", type=int, default=20)
     cal = sub.add_parser("calibrate-judge", help="score the LLM judge on known answers")
     cal.add_argument("--judge", help="judge model (default: configured)")
     gen = sub.add_parser("eval-generation", help="answer quality: facts, language, LLM judge")
@@ -188,6 +193,33 @@ def main(argv: list[str] | None = None) -> None:
                     print("GENERATION GATE FAILED:\n  " + "\n  ".join(violations))
                     sys.exit(1)
                 print("generation gate passed")
+        case "audit":
+            from datetime import UTC, datetime
+
+            from support_rag.tracing import audit_log
+
+            if not settings.trace_mlflow_uri:
+                sys.exit("set RAG_TRACE_MLFLOW_URI to the MLflow server that stores the traces")
+            records = audit_log(
+                settings.trace_mlflow_uri,
+                settings.trace_experiment,
+                reason=args.reason,
+                lang=args.lang,
+                request_id=args.request_id,
+                limit=args.limit,
+            )
+            for r in records:
+                when = datetime.fromtimestamp(r["time_ms"] / 1000, UTC).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
+                print(
+                    f"{when} {r['request_id'][:8]} [{r['lang']}] {r['reason']:19} "
+                    f"{r['duration_ms'] or 0:>6} ms pii={r['pii_types'] or '-':10} "
+                    f"cited={r['cited'] or '-'} | {(r['question'] or '')[:60]!r}"
+                )
+                if r["guard"]:
+                    print(f"{'':28}guard: {r['guard'][:100]}")
+            print(f"{len(records)} record(s)")
         case "train-injection":
             from support_rag.embeddings import FastEmbedDense
             from support_rag.injection_model import save, train_injection_classifier

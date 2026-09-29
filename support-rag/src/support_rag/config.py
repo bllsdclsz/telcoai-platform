@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     # to the model's NO_ANSWER instruction (second layer). See support-rag/README.md.
     min_retrieval_score: float = 0.78
 
+    # Request tracing / audit log (one MLflow trace per question); None disables tracing.
+    trace_mlflow_uri: str | None = None
+    trace_experiment: str = "support-assistant-traces"
+
     # Answer-quality evaluation: the judge is a different model family than the generator,
     # so no model grades its own answers. Runs are logged to MLflow when a URI is set.
     judge_model: str = "ollama_chat/qwen2.5"
