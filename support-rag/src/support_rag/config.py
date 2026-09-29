@@ -45,3 +45,6 @@ class Settings(BaseSettings):
     # set), so no real question is refused; it stops 12/24 off-topic questions. The rest are left
     # to the model's NO_ANSWER instruction (second layer). See support-rag/README.md.
     min_retrieval_score: float = 0.78
+
+    # Learned prompt-injection classifier (rag train-injection); None disables it (rules only).
+    injection_classifier: Path | None = PACKAGE_DIR / "models" / "injection_classifier.json"

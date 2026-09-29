@@ -46,8 +46,9 @@ serve:
 rag-ingest:         ## index the help-center corpus (support-rag)
 	uv run rag ingest
 
-rag-eval:           ## retrieval evaluation gate (support-rag)
+rag-eval:           ## retrieval + safety evaluation gates (support-rag)
 	uv run rag eval-retrieval --gate
+	uv run rag eval-safety --gate
 
 monitor:            ## Prefect drift check on recent predictions; retrains on drift
 	uv run churn monitor

@@ -44,6 +44,10 @@ def main(argv: list[str] | None = None) -> None:
     ev.add_argument("--no-sparse", action="store_true", help="dense-only retrieval")
     ev.add_argument("--gate", action="store_true", help="exit 1 if below eval/thresholds.yaml")
     ev.add_argument("--report", help="write the JSON report(s) to this file")
+    sev = sub.add_parser("eval-safety", help="score the input guardrails on eval/safety.yaml")
+    sev.add_argument("--gate", action="store_true", help="exit 1 if below eval/thresholds.yaml")
+    sev.add_argument("--rules-only", action="store_true", help="skip the learned classifier")
+    sub.add_parser("train-injection", help="train the prompt-injection classifier artifact")
     args = parser.parse_args(argv)
 
     settings = Settings()
@@ -92,6 +96,52 @@ def main(argv: list[str] | None = None) -> None:
             from support_rag.api import create_app
 
             uvicorn.run(create_app(), host=args.host, port=args.port)
+        case "train-injection":
+            from support_rag.embeddings import FastEmbedDense
+            from support_rag.injection_model import save, train_injection_classifier
+
+            if settings.injection_classifier is None:
+                sys.exit("RAG_INJECTION_CLASSIFIER is disabled")
+            clf = train_injection_classifier(settings, FastEmbedDense(settings.dense_model))
+            save(clf, settings.injection_classifier)
+            print(f"saved {settings.injection_classifier}: {clf.metadata}")
+        case "eval-safety":
+            from support_rag.safety_eval import check_safety_thresholds, evaluate_safety
+
+            classifier = encoder = None
+            if not args.rules_only and settings.injection_classifier:
+                from support_rag.embeddings import FastEmbedDense
+                from support_rag.injection_model import InjectionClassifier
+
+                classifier = InjectionClassifier.load(settings.injection_classifier)
+                encoder = FastEmbedDense(classifier.embedding_model)
+            rep = evaluate_safety(settings, classifier, encoder)
+            print(
+                f"{'detector':22} tuning({rep.n_tuning}) held-out({rep.n_holdout}) "
+                f"FP held-out({rep.n_benign}) FP golden({rep.n_golden})"
+            )
+            for name, sc in [("rules", rep.rules), ("rules + classifier", rep.combined)]:
+                if sc is not None:
+                    print(
+                        f"{name:22} {sc.tuning_recall:10.1%} {sc.holdout_recall:12.1%} "
+                        f"{sc.holdout_fpr:15.1%} {sc.golden_fpr:13.1%}"
+                    )
+            print(f"PII recall/precision {rep.pii_recall:.1%} / {rep.pii_precision:.1%}")
+            for m in rep.shipped.missed_holdout:
+                print(f"  missed held-out attack: {m}")
+            for b in rep.shipped.false_positives:
+                print(f"  false positive: {b}")
+            for e in rep.pii_errors:
+                print(f"  pii: {e['text']!r} expected {e['expected']} got {e['found']}")
+            if args.gate:
+                thresholds = yaml.safe_load(
+                    (settings.eval_dir / "thresholds.yaml").read_text(encoding="utf-8")
+                )["safety"]
+                violations = check_safety_thresholds(rep, thresholds)
+                if violations:
+                    print("SAFETY GATE FAILED:\n  " + "\n  ".join(violations))
+                    sys.exit(1)
+                print("safety gate passed")
         case "eval-retrieval":
             from support_rag.evaluate import check_thresholds, run_retrieval_eval
 
