@@ -29,14 +29,15 @@ train:
 features:           ## publish customer features to Feast (needs Redis: make up)
 	uv run churn features
 
-pipeline:           ## Prefect flow: fetch -> train + gate -> promote to staging
-	uv run churn pipeline
+pipeline:           ## Prefect flow: fetch -> [tune] -> train + gate + model card -> staging (TUNE=30)
+	uv run churn pipeline $(if $(TUNE),--tune-trials $(TUNE))
 
 data:               ## pull the versioned dataset (falls back to download)
 	uv run dvc pull || uv run churn download
 
-promote:            ## make promote FROM=dev TO=prod
-	uv run churn promote --from $(or $(FROM),dev) --to $(or $(TO),prod)
+promote:            ## make promote FROM=staging TO=prod APPROVED_BY="Name" [FAIRNESS_REVIEWED=1]
+	uv run churn promote --from $(or $(FROM),dev) --to $(or $(TO),prod) \
+		$(if $(APPROVED_BY),--approved-by "$(APPROVED_BY)") $(if $(FAIRNESS_REVIEWED),--fairness-reviewed)
 
 serve:
 	uv run churn serve

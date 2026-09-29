@@ -110,3 +110,11 @@ def test_monitoring_on_drift_logs_report_and_retrains(monitor_settings: Settings
     # Retraining ran and the candidate landed in staging, never prod.
     aliases = MlflowClient().get_registered_model(monitor_settings.registered_model_name).aliases
     assert set(aliases) == {"dev", "staging"}
+
+
+def test_flow_tunes_before_training(flow_settings: Settings) -> None:
+    result = training_flow(promote_to=None, tune_trials=2, settings=flow_settings)
+
+    runs = mlflow.search_runs(experiment_names=[flow_settings.experiment_name])
+    assert (runs["tags.run_type"] == "tuning").sum() == 1
+    assert result.model_version == "1"

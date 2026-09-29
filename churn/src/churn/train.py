@@ -24,6 +24,7 @@ from sklearn.pipeline import Pipeline
 from churn.config import Settings
 from churn.data import load
 from churn.features import FeatureEngineer, build_preprocessor
+from churn.model_card import DataInfo, build_model_card, render_markdown
 from churn.schema import FEATURE_COLUMNS, TARGET
 
 DEFAULT_PARAMS: dict[str, Any] = {
@@ -55,6 +56,21 @@ class TrainResult:
     run_id: str
     model_version: str
     metrics: dict[str, float]
+    fairness_review_required: bool
+
+
+def split(
+    df: pd.DataFrame, settings: Settings
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+    """The one train/test split; tuning only ever sees the training part."""
+    X_train, X_test, y_train, y_test = train_test_split(
+        df[FEATURE_COLUMNS],
+        df[TARGET],
+        test_size=settings.test_size,
+        stratify=df[TARGET],
+        random_state=settings.random_seed,
+    )
+    return X_train, X_test, y_train, y_test
 
 
 def build_pipeline(params: dict[str, Any], seed: int) -> Pipeline:
@@ -98,19 +114,14 @@ def train(
     params = {**DEFAULT_PARAMS, **(params or {})}
     data_path = data_path or settings.raw_data_path
     df = load(data_path)
-    X_train, X_test, y_train, y_test = train_test_split(
-        df[FEATURE_COLUMNS],
-        df[TARGET],
-        test_size=settings.test_size,
-        stratify=df[TARGET],
-        random_state=settings.random_seed,
-    )
+    data_md5 = file_md5(data_path)
+    X_train, X_test, y_train, y_test = split(df, settings)
 
     mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
     mlflow.set_experiment(settings.experiment_name)
     with mlflow.start_run() as run:
         mlflow.log_params({**params, "seed": settings.random_seed, "test_size": settings.test_size})
-        mlflow.set_tag("data_md5", file_md5(data_path))
+        mlflow.set_tag("data_md5", data_md5)
         mlflow.log_input(
             from_pandas(df, source=str(data_path), name="telco_churn", targets=TARGET),
             context="training",
@@ -135,8 +146,48 @@ def train(
             skops_trusted_types=SKOPS_TRUSTED_TYPES,
         )
         version = str(info.registered_model_version)
-        MlflowClient().set_registered_model_alias(
-            settings.registered_model_name, settings.register_alias, version
-        )
 
-    return TrainResult(run_id=run.info.run_id, model_version=version, metrics=metrics)
+        card = build_model_card(
+            model_name=settings.registered_model_name,
+            version=version,
+            run_id=run.info.run_id,
+            params=params,
+            metrics=metrics,
+            data=DataInfo(
+                source=data_path.as_posix(),
+                md5=data_md5,
+                n_rows=len(df),
+                churn_rate=float(df[TARGET].mean()),
+                n_train=len(X_train),
+                n_test=len(X_test),
+            ),
+            X_test=X_test,
+            y_test=y_test,
+            proba=model.predict_proba(X_test)[:, 1],
+        )
+        review_required = card["fairness"]["review_required"]
+        mlflow.log_dict(card, "model_card/model_card.json")
+        mlflow.log_text(render_markdown(card), "model_card/model_card.md")
+        mlflow.set_tag("fairness_review", "required" if review_required else "not_required")
+
+        client = MlflowClient()
+        name = settings.registered_model_name
+        client.set_model_version_tag(name, version, "model_card", "model_card/model_card.md")
+        client.set_model_version_tag(
+            name, version, "fairness_review", "required" if review_required else "not_required"
+        )
+        client.update_model_version(
+            name,
+            version,
+            description=f"ROC AUC {metrics['roc_auc']:.3f} on {len(X_test)} held-out customers. "
+            f"Fairness review {'REQUIRED' if review_required else 'not required'}. "
+            f"Model card: run {run.info.run_id}, artifact model_card/model_card.md",
+        )
+        client.set_registered_model_alias(name, settings.register_alias, version)
+
+    return TrainResult(
+        run_id=run.info.run_id,
+        model_version=version,
+        metrics=metrics,
+        fairness_review_required=review_required,
+    )

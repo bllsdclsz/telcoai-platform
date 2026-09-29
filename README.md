@@ -16,14 +16,16 @@ Requires [uv](https://docs.astral.sh/uv/). Docker is optional.
 make install          # .venv + pre-commit hooks
 make mlflow           # MLflow at http://127.0.0.1:5000 (or `make up` for the Docker version)
 make download train   # fetch data, train, register as telco-churn@dev if it passes the gate
-make promote FROM=dev TO=prod
+make promote FROM=dev TO=prod APPROVED_BY="Your Name"   # add FAIRNESS_REVIEWED=1 after reading a flagged model card
 make serve            # API at http://127.0.0.1:8000/docs
 ```
 
 Full stack in Docker (MLflow, Redis + Feast feature server, API, Prometheus, Grafana):
 
 ```bash
-make up data train promote features serve-docker
+make up data train features
+make promote APPROVED_BY="Your Name" FAIRNESS_REVIEWED=1   # after reading the model card in MLflow
+make serve-docker
 make demo-drift       # simulated drift -> automatic retrain to staging
 ```
 
@@ -32,6 +34,7 @@ make demo-drift       # simulated drift -> automatic retrain to staging
 - **Reproducible:** Python and every dependency pinned in `uv.lock`; seeded training; data and parameters logged per run.
 - **Quality gates:** schema validation (pandera) before training; a model below the metric threshold is never registered.
 - **Promotion by alias:** training only ever writes `dev`. Promotion is an explicit step, and the previous version is kept as `<env>-previous` for one-command rollback.
+- **Governance:** every registered version ships with a generated model card (intended use, data lineage, per-group performance, fairness gaps, blind spots). Promotion to prod needs a named approver and an explicit fairness acknowledgement when the card flags one; both are recorded on the version.
 - **CI on every change:** ruff, mypy, pytest, then a container build.
 
 Tool versions and upgrade notes: [docs/versions.md](docs/versions.md).
