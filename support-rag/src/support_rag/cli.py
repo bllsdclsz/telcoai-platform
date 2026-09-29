@@ -1,4 +1,4 @@
-"""Command line entry point: ``rag ingest | search | eval-retrieval``."""
+"""Command line entry point: ``rag ingest | search | ask | serve | eval-retrieval``."""
 
 import argparse
 import json
@@ -31,6 +31,12 @@ def main(argv: list[str] | None = None) -> None:
     search.add_argument("query")
     search.add_argument("--lang", choices=LANGUAGES)
     search.add_argument("-k", type=int, default=5)
+    ask = sub.add_parser("ask", help="answer a question with the configured LLM")
+    ask.add_argument("question")
+    ask.add_argument("--lang", choices=LANGUAGES, required=True)
+    serve = sub.add_parser("serve", help="run the HTTP API")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8100)
     ev = sub.add_parser("eval-retrieval", help="score retrieval on the golden questions")
     ev.add_argument(
         "--dense", action="append", help="dense model(s) to compare (default: configured)"
@@ -70,6 +76,22 @@ def main(argv: list[str] | None = None) -> None:
             )
             for h in retriever.search(args.query, k=args.k, lang=args.lang):
                 print(f"{h.score:.3f}  [{h.lang}] {h.article_id:28} {h.title}")
+        case "ask":
+            from support_rag.api import build_assistant
+
+            answer = build_assistant(settings).ask(args.question, args.lang)
+            print(answer.text)
+            print(
+                f"\n[{answer.reason}] {answer.prompt} | {answer.model} | {answer.latency_ms:.0f} ms"
+            )
+            for src in answer.cited:
+                print(f"  [{src.n}] {src.title} - {src.url}")
+        case "serve":
+            import uvicorn
+
+            from support_rag.api import create_app
+
+            uvicorn.run(create_app(), host=args.host, port=args.port)
         case "eval-retrieval":
             from support_rag.evaluate import check_thresholds, run_retrieval_eval
 
