@@ -72,7 +72,7 @@ services:
         condition: service_healthy
       predictions-init:
         condition: service_completed_successfully
-    # Needs a model behind the serving alias: run `make train promote` first.
+    # Needs a model behind the serving alias: run `make train` and `make promote APPROVED_BY=...` first.
     profiles: [serve]
 
   prometheus:

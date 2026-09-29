@@ -14,8 +14,13 @@ def main(argv: list[str] | None = None) -> None:
     promote_cmd = sub.add_parser("promote", help="move a model version between aliases")
     promote_cmd.add_argument("--from", dest="source", required=True, help="e.g. dev, staging")
     promote_cmd.add_argument("--to", dest="target", required=True, help="e.g. staging, prod")
+    promote_cmd.add_argument("--approved-by", help="required for prod; recorded on the version")
+    promote_cmd.add_argument(
+        "--fairness-reviewed", action="store_true", help="acknowledge a flagged fairness review"
+    )
     pipeline_cmd = sub.add_parser("pipeline", help="run the Prefect training flow")
     pipeline_cmd.add_argument("--promote-to", default="staging", help="'' to skip promotion")
+    pipeline_cmd.add_argument("--tune-trials", type=int, default=0, help="Optuna trials first")
     sub.add_parser("features", help="publish features to Feast (offline + online store)")
     monitor_cmd = sub.add_parser("monitor", help="run the Prefect drift monitoring flow")
     monitor_cmd.add_argument("--no-retrain", action="store_true", help="report drift only")
@@ -43,17 +48,31 @@ def main(argv: list[str] | None = None) -> None:
                 "run_id": result.run_id,
                 "version": result.model_version,
                 "metrics": result.metrics,
+                "fairness_review_required": result.fairness_review_required,
             }
             print(json.dumps(summary, indent=2))
         case "promote":
-            from churn.registry import promote
+            from churn.registry import PromotionRefusedError, promote
 
-            version = promote(settings, args.source, args.target)
+            try:
+                version = promote(
+                    settings,
+                    args.source,
+                    args.target,
+                    approved_by=args.approved_by,
+                    fairness_reviewed=args.fairness_reviewed,
+                )
+            except PromotionRefusedError as exc:
+                raise SystemExit(f"promotion refused: {exc}") from None
             print(f"{settings.registered_model_name} v{version}: {args.source} -> {args.target}")
         case "pipeline":
             from churn.flows import training_flow
 
-            training_flow(promote_to=args.promote_to or None, settings=settings)
+            training_flow(
+                promote_to=args.promote_to or None,
+                settings=settings,
+                tune_trials=args.tune_trials,
+            )
         case "features":
             import os
 
