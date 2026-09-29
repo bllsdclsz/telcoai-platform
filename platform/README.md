@@ -51,6 +51,18 @@ curl localhost:18001/health     # {"status":"ok","model_version":"1"}
 
 `make cluster-down` deletes everything.
 
+## SLOs and monitoring
+
+Prometheus scrapes every pod with `prometheus.io/*` annotations; one rule set turns the APIs' request metrics into SLIs for every service and environment. Objectives, burn-rate alerts, routing and the error budget policy: [docs/slos.md](../docs/slos.md). Runbook: [docs/runbooks/slo.md](../docs/runbooks/slo.md).
+
+```bash
+make grafana-ui       # http://localhost:3001, dashboard "TelcoAI SLOs"
+make prometheus-ui &  # http://localhost:9090 (alerts, rules)
+make slo-report       # markdown report per env and service
+```
+
+Dev and test get steady synthetic traffic (one known customer every 2 s), so their SLIs have data without real users; prod only counts real requests.
+
 ## Layout
 
 | Path                          | What                                                                                              |
@@ -63,6 +75,9 @@ curl localhost:18001/health     # {"status":"ok","model_version":"1"}
 | `terraform/`                  | Namespaces (`ResourceQuota`, `LimitRange`), Argo CD, and the root application                     |
 | `charts/mlflow-registry/`     | The shared MLflow registry                                                                        |
 | `charts/churn-api/`           | Churn API serving one alias, plus the optional dev bootstrap job                                  |
+| `charts/slo/` | SLO recording rules, burn-rate alerts (with promtool unit tests) and the SLO dashboard |
+| `monitoring/` | Values for the upstream Prometheus/Alertmanager and Grafana charts |
+| `scripts/slo_report.py` | `make slo-report`: availability, latency and error budget per env and service |
 | `gitops/apps/`                | What Argo CD deploys: the registry `Application` and the churn-api `ApplicationSet` (app of apps) |
 | `gitops/envs/<env>/`          | Values per environment: the only files a deployment PR changes. A new folder is a new environment |
 
@@ -81,3 +96,4 @@ curl localhost:18001/health     # {"status":"ok","model_version":"1"}
 - **Default probes killed a healthy MLflow.** The 1 s default timeout is too short for a Python server starting under a CPU limit. A `startupProbe` covers the slow start, and the liveness probe only starts after it passes.
 - **The API used to exit when its alias had no model**, so a fresh environment crash-looped, and after a promotion it could wait out the 5-minute restart back-off. Now it starts unready (`/health` 503, `/livez` 200 for the liveness probe) and follows its alias: on the cluster, moving an alias from version 1 to 2 switched the running pod in about 10 s, with no restart. The same path applies a rollback.
 - **A registry outage would have blocked API startup for minutes.** MLflow's client retries 7 times with exponential backoff and a 120 s timeout by default. The API retries in its own loop, so it now sets 1 retry and a 10 s timeout: with the registry unreachable it starts unready in seconds (found while testing the service template's image).
+- **Sidecars without resources exhausted the monitoring budget.** The Prometheus and Alertmanager config reloaders set no resources, so the namespace's LimitRange gave each the 512Mi default limit: Prometheus alone took 1.9 of the 2 GiB, and Grafana could not start (`exceeded quota`). Explicit small limits (32Mi) fixed it.

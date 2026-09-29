@@ -50,7 +50,8 @@ Status as of 2026-09-29.
 | API follows its alias: starts unready (`/health` 503, `/livez` for liveness), picks up promotions and rollbacks without a restart | Done | `churn/src/churn/serve/app.py` |
 | Support assistant chart (Qdrant, Ollama)                                                               | Planned (needs more memory than the shared VM has) |                                                               |
 | Copier service template (`make new-service`), generic promotion scripts and manifest checks for every service, template tested in CI | Done | `templates/ml-service/`, `.github/workflows/template-ci.yml` |
-| SLO report, runbooks, a postmortem                                                                     | Next |                                                               |
+| SLOs for every API and env (availability 99.5%, latency 99% < 300 ms), multi-window burn-rate alerts with promtool unit tests, alert routing, SLO dashboard, `make slo-report`, runbook, error budget policy | Done | `docs/slos.md`, `platform/charts/slo/` |
+| Game day: break a model on purpose, detect it with the SLO alerts, roll back, write the postmortem | Next | `docs/postmortems/` |
 | Optional one-weekend Azure run                                                                         | Planned |                                                               |
 
 ## Local environment notes

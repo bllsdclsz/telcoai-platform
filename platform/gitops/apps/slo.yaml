@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: slo
+  namespace: argocd
+  finalizers: [resources-finalizer.argocd.argoproj.io]
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/bllsdclsz/telcoai-platform.git
+    targetRevision: main
+    path: platform/charts/slo
+    helm:
+      releaseName: slo
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: telcoai-monitoring
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }

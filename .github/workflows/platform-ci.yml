@@ -31,6 +31,28 @@ jobs:
       - name: Charts refuse to render without an image tag
         run: |
           ! helm template churn platform/charts/churn-api 2>/dev/null
+      - name: Monitoring charts render with our values
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add grafana-community https://grafana-community.github.io/helm-charts
+          helm template prometheus prometheus-community/prometheus --version 29.35.0 \
+            -n telcoai-monitoring -f platform/monitoring/prometheus-values.yaml \
+            | kubeconform -strict -summary -kubernetes-version 1.35.0
+          helm template grafana grafana-community/grafana --version 13.2.7 \
+            -n telcoai-monitoring -f platform/monitoring/grafana-values.yaml \
+            | kubeconform -strict -summary -kubernetes-version 1.35.0
+
+  # SLO rules: valid, and the alerts fire (or stay silent) exactly as the unit tests expect.
+  slo-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: promtool check and test
+        run: >
+          docker run --rm -v "$PWD/platform/charts/slo:/c:ro" -w /c/tests --entrypoint sh
+          prom/prometheus:v3.15.0 -c 'promtool check rules ../files/rules/*.yaml && promtool test rules *.test.yaml'
+      - name: Dashboards are valid JSON
+        run: for f in platform/charts/slo/files/dashboards/*.json; do python3 -m json.tool "$f" > /dev/null; done
 
   # Test and prod pin immutable tags that exist; prod only runs what has been in test.
   promotions:

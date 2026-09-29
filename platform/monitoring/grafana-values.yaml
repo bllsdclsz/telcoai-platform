@@ -1,0 +1,34 @@
+# Values for the grafana-community/grafana chart (Argo CD app platform/gitops/apps/grafana.yaml).
+# Datasource and dashboards are provisioned from git: no clicks, no drift.
+
+resources:
+  requests: { cpu: 50m, memory: 128Mi }
+  limits: { cpu: 500m, memory: 256Mi }
+
+grafana.ini:
+  auth.anonymous: { enabled: true, org_role: Viewer } # local cluster: read-only without login
+  analytics: { check_for_updates: false, reporting_enabled: false }
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        uid: prometheus
+        type: prometheus
+        url: http://prometheus-server.telcoai-monitoring
+        isDefault: true
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: slo
+        folder: TelcoAI
+        type: file
+        disableDeletion: true
+        editable: false
+        options: { path: /var/lib/grafana/dashboards/slo }
+
+dashboardsConfigMaps:
+  slo: slo-dashboards # from the slo chart

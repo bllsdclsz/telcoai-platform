@@ -40,6 +40,8 @@ Policy: use the latest stable release of every tool, locked in `uv.lock` (Python
 | Terraform      | 1.16.4                                                         | Providers: hashicorp/kubernetes 3.2.1, hashicorp/helm 3.3.0 (lock file covers linux, windows, macOS) |
 | Helm           | 4.3.0                                                          | CI; the Helm bundled with Rancher Desktop (4.2.3) also works locally                                 |
 | Argo CD        | chart `argo-cd` 10.9.4 (Argo CD v3.5.3), `argocd-apps` 2.0.6   |                                                                                                      |
+| Prometheus chart | 29.35.0 (Prometheus v3.15.0) | prometheus-community; node-exporter, kube-state-metrics, pushgateway off |
+| Grafana chart | 13.2.7 (Grafana 13.2.3) | The chart moved to grafana-community; grafana/helm-charts stops at 10.5 |
 | Copier         | 9.18.2 | Service template; run with `uvx`, nothing to install |
 | kubeconform    | 0.8.0                                                          | CI schema checks; CRD schemas from the datree CRDs catalog                                           |
 | GitHub Actions | login-action v4.6.0, setup-helm v5.0.1, setup-terraform v4.0.1 | Pinned by commit SHA                                                                                 |

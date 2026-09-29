@@ -8,3 +8,6 @@ api:
 
 bootstrapModel:
   enabled: true
+
+synthetic:
+  enabled: true

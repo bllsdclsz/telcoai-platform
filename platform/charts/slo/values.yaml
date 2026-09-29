@@ -1,0 +1,3 @@
+# Names the Prometheus and Grafana releases mount (see platform/monitoring/*-values.yaml).
+rulesConfigMap: slo-rules
+dashboardsConfigMap: slo-dashboards
