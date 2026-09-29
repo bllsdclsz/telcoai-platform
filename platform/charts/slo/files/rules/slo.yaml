@@ -1,0 +1,157 @@
+# SLOs for every model-serving API in every environment (dev, test, prod).
+#   availability: 99.5% of /predict requests succeed (not 5xx)  -> error budget 0.5%
+#   latency:      99% of /predict requests finish within 300 ms  -> error budget 1%
+# Both over 30 days. Alerts use multi-window burn rates (Google SRE workbook, ch. 5): a
+# fast burn (14.4x: 2% of the monthly budget in 1 h) pages, a slow burn (6x: 5% in 6 h)
+# opens a ticket. The short window makes an alert stop soon after the burn stops.
+# Generated for each window; keep the four windows in sync when editing.
+groups:
+  - name: slo-sli
+    interval: 30s
+    rules:
+      - record: slo:requests:rate5m
+        expr: label_replace(label_replace(sum by (namespace, status) (rate(churn_http_requests_total{route="/predict"}[5m])), "service", "churn-api", "", ""), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: churn }
+      - record: slo:requests_slow:rate5m
+        expr: label_replace(label_replace((sum by (namespace) (rate(churn_http_request_duration_seconds_count{route="/predict"}[5m])) - sum by (namespace) (rate(churn_http_request_duration_seconds_bucket{route="/predict",le="0.3"}[5m]))), "service", "churn-api", "", ""), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: churn }
+      - record: slo:requests_timed:rate5m
+        expr: label_replace(label_replace(sum by (namespace) (rate(churn_http_request_duration_seconds_count{route="/predict"}[5m])), "service", "churn-api", "", ""), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: churn }
+      - record: slo:requests:rate5m
+        expr: label_replace(sum by (namespace, service, status) (label_replace(rate(service_requests_total{route="/predict"}[5m]), "service", "$1", "app_kubernetes_io_name", "(.+)")), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: ml-service-template }
+      - record: slo:requests_slow:rate5m
+        expr: label_replace(label_replace((sum by (namespace, app_kubernetes_io_name) (rate(service_request_duration_seconds_count{route="/predict"}[5m])) - sum by (namespace, app_kubernetes_io_name) (rate(service_request_duration_seconds_bucket{route="/predict",le="0.3"}[5m]))), "service", "$1", "app_kubernetes_io_name", "(.+)"), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: ml-service-template }
+      - record: slo:requests_timed:rate5m
+        expr: label_replace(label_replace(sum by (namespace, app_kubernetes_io_name) (rate(service_request_duration_seconds_count{route="/predict"}[5m])), "service", "$1", "app_kubernetes_io_name", "(.+)"), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: ml-service-template }
+      - record: slo:error_ratio:rate5m
+        expr: >-
+          (sum by (namespace, env, service) (slo:requests:rate5m{status=~"5.."})
+          or sum by (namespace, env, service) (slo:requests:rate5m) * 0)
+          / sum by (namespace, env, service) (slo:requests:rate5m)
+      - record: slo:slow_ratio:rate5m
+        expr: sum by (namespace, env, service) (slo:requests_slow:rate5m) / sum by (namespace, env, service) (slo:requests_timed:rate5m)
+      - record: slo:requests:rate30m
+        expr: label_replace(label_replace(sum by (namespace, status) (rate(churn_http_requests_total{route="/predict"}[30m])), "service", "churn-api", "", ""), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: churn }
+      - record: slo:requests_slow:rate30m
+        expr: label_replace(label_replace((sum by (namespace) (rate(churn_http_request_duration_seconds_count{route="/predict"}[30m])) - sum by (namespace) (rate(churn_http_request_duration_seconds_bucket{route="/predict",le="0.3"}[30m]))), "service", "churn-api", "", ""), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: churn }
+      - record: slo:requests_timed:rate30m
+        expr: label_replace(label_replace(sum by (namespace) (rate(churn_http_request_duration_seconds_count{route="/predict"}[30m])), "service", "churn-api", "", ""), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: churn }
+      - record: slo:requests:rate30m
+        expr: label_replace(sum by (namespace, service, status) (label_replace(rate(service_requests_total{route="/predict"}[30m]), "service", "$1", "app_kubernetes_io_name", "(.+)")), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: ml-service-template }
+      - record: slo:requests_slow:rate30m
+        expr: label_replace(label_replace((sum by (namespace, app_kubernetes_io_name) (rate(service_request_duration_seconds_count{route="/predict"}[30m])) - sum by (namespace, app_kubernetes_io_name) (rate(service_request_duration_seconds_bucket{route="/predict",le="0.3"}[30m]))), "service", "$1", "app_kubernetes_io_name", "(.+)"), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: ml-service-template }
+      - record: slo:requests_timed:rate30m
+        expr: label_replace(label_replace(sum by (namespace, app_kubernetes_io_name) (rate(service_request_duration_seconds_count{route="/predict"}[30m])), "service", "$1", "app_kubernetes_io_name", "(.+)"), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: ml-service-template }
+      - record: slo:error_ratio:rate30m
+        expr: >-
+          (sum by (namespace, env, service) (slo:requests:rate30m{status=~"5.."})
+          or sum by (namespace, env, service) (slo:requests:rate30m) * 0)
+          / sum by (namespace, env, service) (slo:requests:rate30m)
+      - record: slo:slow_ratio:rate30m
+        expr: sum by (namespace, env, service) (slo:requests_slow:rate30m) / sum by (namespace, env, service) (slo:requests_timed:rate30m)
+      - record: slo:requests:rate1h
+        expr: label_replace(label_replace(sum by (namespace, status) (rate(churn_http_requests_total{route="/predict"}[1h])), "service", "churn-api", "", ""), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: churn }
+      - record: slo:requests_slow:rate1h
+        expr: label_replace(label_replace((sum by (namespace) (rate(churn_http_request_duration_seconds_count{route="/predict"}[1h])) - sum by (namespace) (rate(churn_http_request_duration_seconds_bucket{route="/predict",le="0.3"}[1h]))), "service", "churn-api", "", ""), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: churn }
+      - record: slo:requests_timed:rate1h
+        expr: label_replace(label_replace(sum by (namespace) (rate(churn_http_request_duration_seconds_count{route="/predict"}[1h])), "service", "churn-api", "", ""), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: churn }
+      - record: slo:requests:rate1h
+        expr: label_replace(sum by (namespace, service, status) (label_replace(rate(service_requests_total{route="/predict"}[1h]), "service", "$1", "app_kubernetes_io_name", "(.+)")), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: ml-service-template }
+      - record: slo:requests_slow:rate1h
+        expr: label_replace(label_replace((sum by (namespace, app_kubernetes_io_name) (rate(service_request_duration_seconds_count{route="/predict"}[1h])) - sum by (namespace, app_kubernetes_io_name) (rate(service_request_duration_seconds_bucket{route="/predict",le="0.3"}[1h]))), "service", "$1", "app_kubernetes_io_name", "(.+)"), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: ml-service-template }
+      - record: slo:requests_timed:rate1h
+        expr: label_replace(label_replace(sum by (namespace, app_kubernetes_io_name) (rate(service_request_duration_seconds_count{route="/predict"}[1h])), "service", "$1", "app_kubernetes_io_name", "(.+)"), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: ml-service-template }
+      - record: slo:error_ratio:rate1h
+        expr: >-
+          (sum by (namespace, env, service) (slo:requests:rate1h{status=~"5.."})
+          or sum by (namespace, env, service) (slo:requests:rate1h) * 0)
+          / sum by (namespace, env, service) (slo:requests:rate1h)
+      - record: slo:slow_ratio:rate1h
+        expr: sum by (namespace, env, service) (slo:requests_slow:rate1h) / sum by (namespace, env, service) (slo:requests_timed:rate1h)
+      - record: slo:requests:rate6h
+        expr: label_replace(label_replace(sum by (namespace, status) (rate(churn_http_requests_total{route="/predict"}[6h])), "service", "churn-api", "", ""), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: churn }
+      - record: slo:requests_slow:rate6h
+        expr: label_replace(label_replace((sum by (namespace) (rate(churn_http_request_duration_seconds_count{route="/predict"}[6h])) - sum by (namespace) (rate(churn_http_request_duration_seconds_bucket{route="/predict",le="0.3"}[6h]))), "service", "churn-api", "", ""), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: churn }
+      - record: slo:requests_timed:rate6h
+        expr: label_replace(label_replace(sum by (namespace) (rate(churn_http_request_duration_seconds_count{route="/predict"}[6h])), "service", "churn-api", "", ""), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: churn }
+      - record: slo:requests:rate6h
+        expr: label_replace(sum by (namespace, service, status) (label_replace(rate(service_requests_total{route="/predict"}[6h]), "service", "$1", "app_kubernetes_io_name", "(.+)")), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: ml-service-template }
+      - record: slo:requests_slow:rate6h
+        expr: label_replace(label_replace((sum by (namespace, app_kubernetes_io_name) (rate(service_request_duration_seconds_count{route="/predict"}[6h])) - sum by (namespace, app_kubernetes_io_name) (rate(service_request_duration_seconds_bucket{route="/predict",le="0.3"}[6h]))), "service", "$1", "app_kubernetes_io_name", "(.+)"), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: ml-service-template }
+      - record: slo:requests_timed:rate6h
+        expr: label_replace(label_replace(sum by (namespace, app_kubernetes_io_name) (rate(service_request_duration_seconds_count{route="/predict"}[6h])), "service", "$1", "app_kubernetes_io_name", "(.+)"), "env", "$1", "namespace", "telcoai-(.*)")
+        labels: { family: ml-service-template }
+      - record: slo:error_ratio:rate6h
+        expr: >-
+          (sum by (namespace, env, service) (slo:requests:rate6h{status=~"5.."})
+          or sum by (namespace, env, service) (slo:requests:rate6h) * 0)
+          / sum by (namespace, env, service) (slo:requests:rate6h)
+      - record: slo:slow_ratio:rate6h
+        expr: sum by (namespace, env, service) (slo:requests_slow:rate6h) / sum by (namespace, env, service) (slo:requests_timed:rate6h)
+
+  - name: slo-alerts
+    rules:
+      - alert: SLOAvailabilityFastBurn
+        expr: slo:error_ratio:rate1h > (14.4 * 0.005) and slo:error_ratio:rate5m > (14.4 * 0.005)
+        for: 2m
+        labels: { severity: critical, slo: availability }
+        annotations:
+          summary: "{{ $labels.service }} ({{ $labels.env }}): {{ $value | humanizePercentage }} of requests fail, burning the 30-day error budget 14x too fast"
+          runbook_url: https://github.com/bllsdclsz/telcoai-platform/blob/main/docs/runbooks/slo.md#sloavailabilityfastburn
+
+      - alert: SLOAvailabilitySlowBurn
+        expr: slo:error_ratio:rate6h > (6 * 0.005) and slo:error_ratio:rate30m > (6 * 0.005)
+        for: 15m
+        labels: { severity: warning, slo: availability }
+        annotations:
+          summary: "{{ $labels.service }} ({{ $labels.env }}): {{ $value | humanizePercentage }} of requests fail, burning the error budget 6x too fast"
+          runbook_url: https://github.com/bllsdclsz/telcoai-platform/blob/main/docs/runbooks/slo.md#sloavailabilityslowburn
+
+      - alert: SLOLatencyFastBurn
+        expr: slo:slow_ratio:rate1h > (14.4 * 0.01) and slo:slow_ratio:rate5m > (14.4 * 0.01)
+        for: 2m
+        labels: { severity: critical, slo: latency }
+        annotations:
+          summary: "{{ $labels.service }} ({{ $labels.env }}): {{ $value | humanizePercentage }} of requests slower than 300 ms"
+          runbook_url: https://github.com/bllsdclsz/telcoai-platform/blob/main/docs/runbooks/slo.md#slolatencyfastburn
+
+      - alert: SLOLatencySlowBurn
+        expr: slo:slow_ratio:rate6h > (6 * 0.01) and slo:slow_ratio:rate30m > (6 * 0.01)
+        for: 15m
+        labels: { severity: warning, slo: latency }
+        annotations:
+          summary: "{{ $labels.service }} ({{ $labels.env }}): {{ $value | humanizePercentage }} of requests slower than 300 ms"
+          runbook_url: https://github.com/bllsdclsz/telcoai-platform/blob/main/docs/runbooks/slo.md#slolatencyslowburn
+
+      # ML-specific: the pod runs and answers /livez, but has no model to serve (the alias is
+      # unset, or loading failed). Readiness keeps traffic away; a person has to act.
+      - alert: ModelNotServed
+        expr: |
+          label_replace(up{app_kubernetes_io_part_of="telcoai"} == 1, "env", "$1", "namespace", "telcoai-(.*)")
+          unless on (namespace, pod) (churn_model_info or service_model_info)
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.pod }} ({{ $labels.env }}) is up but serves no model"
+          runbook_url: https://github.com/bllsdclsz/telcoai-platform/blob/main/docs/runbooks/slo.md#modelnotserved

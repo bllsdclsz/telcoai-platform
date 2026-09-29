@@ -1,0 +1,26 @@
+# Prometheus + Alertmanager, Grafana, and the SLO rules/dashboards, all in telcoai-monitoring.
+# Upstream charts with values from this repo (multi-source), so upgrades are a version bump here.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prometheus
+  namespace: argocd
+  finalizers: [resources-finalizer.argocd.argoproj.io]
+spec:
+  project: default
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: prometheus
+      targetRevision: 29.35.0
+      helm:
+        releaseName: prometheus
+        valueFiles: [$values/platform/monitoring/prometheus-values.yaml]
+    - repoURL: https://github.com/bllsdclsz/telcoai-platform.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: telcoai-monitoring
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]

@@ -1,0 +1,87 @@
+# promtool test rules platform/charts/slo/tests/slo.test.yaml  (run from the chart directory)
+rule_files: [../files/rules/slo.yaml]
+evaluation_interval: 1m
+
+tests:
+  # 10% of prod requests fail for an hour: 20x the 0.5% budget rate, so the fast burn pages.
+  - interval: 1m
+    input_series:
+      - series: 'churn_http_requests_total{namespace="telcoai-prod",route="/predict",method="POST",status="200"}'
+        values: "0+90x80"
+      - series: 'churn_http_requests_total{namespace="telcoai-prod",route="/predict",method="POST",status="500"}'
+        values: "0+10x80"
+    alert_rule_test:
+      - eval_time: 70m
+        alertname: SLOAvailabilityFastBurn
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: critical,
+                slo: availability,
+                namespace: telcoai-prod,
+                env: prod,
+                service: churn-api,
+              }
+            exp_annotations:
+              summary: "churn-api (prod): 10% of requests fail, burning the 30-day error budget 14x too fast"
+              runbook_url: https://github.com/bllsdclsz/telcoai-platform/blob/main/docs/runbooks/slo.md#sloavailabilityfastburn
+
+  # 0.1% errors is inside the budget: no availability alert at all.
+  - interval: 1m
+    input_series:
+      - series: 'churn_http_requests_total{namespace="telcoai-test",route="/predict",method="POST",status="200"}'
+        values: "0+999x400"
+      - series: 'churn_http_requests_total{namespace="telcoai-test",route="/predict",method="POST",status="503"}'
+        values: "0+1x400"
+    alert_rule_test:
+      - { eval_time: 390m, alertname: SLOAvailabilityFastBurn, exp_alerts: [] }
+      - { eval_time: 390m, alertname: SLOAvailabilitySlowBurn, exp_alerts: [] }
+
+  # A service generated from the template: every request slower than 300 ms. The alert names
+  # the service from its pod label, so one rule set covers every service.
+  - interval: 1m
+    input_series:
+      - series: 'service_request_duration_seconds_count{namespace="telcoai-test",app_kubernetes_io_name="fraud-score",route="/predict",method="POST"}'
+        values: "0+60x80"
+      - series: 'service_request_duration_seconds_bucket{namespace="telcoai-test",app_kubernetes_io_name="fraud-score",route="/predict",method="POST",le="0.3"}'
+        values: "0+0x80"
+    alert_rule_test:
+      - eval_time: 70m
+        alertname: SLOLatencyFastBurn
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: critical,
+                slo: latency,
+                namespace: telcoai-test,
+                env: test,
+                service: fraud-score,
+              }
+            exp_annotations:
+              summary: "fraud-score (test): 100% of requests slower than 300 ms"
+              runbook_url: https://github.com/bllsdclsz/telcoai-platform/blob/main/docs/runbooks/slo.md#slolatencyfastburn
+
+  # A pod that is up without a model fires after 10 minutes; one serving a model never does.
+  - interval: 1m
+    input_series:
+      - series: 'up{app_kubernetes_io_part_of="telcoai",namespace="telcoai-prod",pod="churn-api-a"}'
+        values: "1x20"
+      - series: 'up{app_kubernetes_io_part_of="telcoai",namespace="telcoai-test",pod="churn-api-b"}'
+        values: "1x20"
+      - series: 'churn_model_info{namespace="telcoai-test",pod="churn-api-b",model_version="1",alias="staging"}'
+        values: "1x20"
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: ModelNotServed
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                app_kubernetes_io_part_of: telcoai,
+                namespace: telcoai-prod,
+                env: prod,
+                pod: churn-api-a,
+              }
+            exp_annotations:
+              summary: "churn-api-a (prod) is up but serves no model"
+              runbook_url: https://github.com/bllsdclsz/telcoai-platform/blob/main/docs/runbooks/slo.md#modelnotserved

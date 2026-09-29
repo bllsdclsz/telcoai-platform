@@ -1,0 +1,5 @@
+apiVersion: v2
+name: slo
+description: SLO rules, burn-rate alerts and the SLO dashboard for every model-serving API (TelcoAI platform)
+type: application
+version: 0.1.0

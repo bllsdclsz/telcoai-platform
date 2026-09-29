@@ -1,0 +1,70 @@
+# Values for the prometheus-community/prometheus chart (Argo CD app platform/gitops/apps/prometheus.yaml).
+# Scrapes every pod with prometheus.io/* annotations; SLO rules come from the slo chart.
+
+kube-state-metrics: { enabled: false }       # memory: the shared VM has little to spare
+prometheus-node-exporter: { enabled: false }
+prometheus-pushgateway: { enabled: false }
+
+scrapeConfigs: # keep: prometheus, kubernetes-pods. The rest would scrape nodes and the API server.
+  kubernetes-api-servers: { enabled: false }
+  kubernetes-nodes: { enabled: false }
+  kubernetes-nodes-cadvisor: { enabled: false }
+  kubernetes-service-endpoints: { enabled: false }
+  kubernetes-service-endpoints-slow: { enabled: false }
+  prometheus-pushgateway: { enabled: false }
+  kubernetes-services: { enabled: false }
+  kubernetes-pods-slow: { enabled: false }
+
+server:
+  retention: 30d # the SLO window
+  retentionSize: 1500MB
+  persistentVolume: { size: 2Gi }
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: "1", memory: 768Mi }
+  extraConfigmapMounts:
+    - { name: slo-rules, mountPath: /etc/config/slo, configMap: slo-rules, readOnly: true }
+
+# Sidecars without resources get the namespace default limit (512Mi each), which alone would
+# exhaust the monitoring budget.
+configmapReload:
+  prometheus: # reload Prometheus when the SLO rules change, not only its own config
+    resources:
+      requests: { cpu: 5m, memory: 16Mi }
+      limits: { cpu: 50m, memory: 32Mi }
+    extraConfigmapMounts:
+      - { name: slo-rules, mountPath: /etc/config/slo, configMap: slo-rules, readOnly: true }
+    extraVolumeDirs: [/etc/config/slo]
+
+serverFiles:
+  prometheus.yml:
+    rule_files: [/etc/config/slo/*.yaml]
+
+alertmanager:
+  persistence: { size: 256Mi }
+  configmapReload:
+    resources:
+      requests: { cpu: 5m, memory: 16Mi }
+      limits: { cpu: 50m, memory: 32Mi }
+  resources:
+    requests: { cpu: 10m, memory: 32Mi }
+    limits: { cpu: 200m, memory: 128Mi }
+  config:
+    # Routing, not delivery: prod pages go to on-call, everything else becomes a ticket. Both
+    # receivers are empty here; in a real setup they hold the PagerDuty and Slack/Jira configs.
+    receivers:
+      - name: team-tickets
+      - name: oncall-pager
+    route:
+      receiver: team-tickets
+      group_by: [alertname, env, service]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      routes:
+        - receiver: oncall-pager
+          matchers: ['env="prod"', 'severity="critical"']
+    inhibit_rules: # a fast burn already says what a slow burn would
+      - source_matchers: ['alertname=~"SLO.*FastBurn"']
+        target_matchers: ['alertname=~"SLO.*SlowBurn"']
+        equal: [env, service, slo]

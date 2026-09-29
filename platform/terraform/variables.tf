@@ -20,6 +20,8 @@ variable "namespaces" {
     # One MLflow registry for all environments: each environment serves its own alias
     # (dev -> @dev, test -> @staging, prod -> @prod), so a model is promoted, never copied.
     registry = { cpu_requests = "500m", memory_requests = "1Gi", cpu_limits = "2", memory_limits = "2Gi", pods = 5 }
+    # Prometheus, Alertmanager and Grafana for every environment's SLOs.
+    monitoring = { cpu_requests = "500m", memory_requests = "768Mi", cpu_limits = "3", memory_limits = "2Gi", pods = 10 }
   }
 }
 

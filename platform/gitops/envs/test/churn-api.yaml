@@ -5,3 +5,6 @@ image:
 
 api:
   servingAlias: staging
+
+synthetic:
+  enabled: true

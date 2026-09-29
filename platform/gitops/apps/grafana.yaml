@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana
+  namespace: argocd
+  finalizers: [resources-finalizer.argocd.argoproj.io]
+spec:
+  project: default
+  sources:
+    - repoURL: https://grafana-community.github.io/helm-charts
+      chart: grafana
+      targetRevision: 13.2.7
+      helm:
+        releaseName: grafana
+        valueFiles: [$values/platform/monitoring/grafana-values.yaml]
+    - repoURL: https://github.com/bllsdclsz/telcoai-platform.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: telcoai-monitoring
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }

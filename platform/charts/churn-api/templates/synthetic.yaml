@@ -1,0 +1,54 @@
+{{- if .Values.synthetic.enabled }}
+# Synthetic traffic: one known customer scored every few seconds, so the SLIs always have data
+# in environments without real users (and an outage shows up before a person notices it).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "churn.name" . }}-synthetic
+  labels:
+    {{- include "churn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: synthetic-traffic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: synthetic-traffic
+  template:
+    metadata:
+      labels:
+        {{- include "churn.labels" . | nindent 8 }}
+        app.kubernetes.io/component: synthetic-traffic
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: client
+          image: {{ include "churn.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - { name: URL, value: "http://{{ include "churn.name" . }}-api:8000/predict" }
+            - { name: INTERVAL, value: {{ .Values.synthetic.intervalSeconds | quote }} }
+            - { name: BODY, value: {{ dict "customers" (list .Values.synthetic.customer) | toJson | quote }} }
+          command: [python, -c]
+          args:
+            - |
+              import os, time, urllib.error, urllib.request
+              url, body, interval = os.environ["URL"], os.environ["BODY"].encode(), float(os.environ["INTERVAL"])
+              while True:
+                  req = urllib.request.Request(url, body, {"Content-Type": "application/json"})
+                  try:
+                      urllib.request.urlopen(req, timeout=5).read()
+                  except (urllib.error.URLError, OSError) as exc:  # the API's metrics count the failure
+                      print("synthetic request failed:", exc, flush=True)
+                  time.sleep(interval)
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { cpu: 100m, memory: 96Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+{{- end }}
