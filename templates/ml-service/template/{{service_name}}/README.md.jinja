@@ -1,0 +1,30 @@
+# {{ service_name }}
+
+{{ description }} Owned by **{{ team }}**. Generated from the platform's `templates/ml-service`.
+
+## What you get
+
+| Piece                  | Where                                                | Notes                                                                    |
+| ---------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------ |
+| Prediction API         | `src/{{ package_name }}/app.py`                      | Serves `models:/{{ model_name }}@<alias>`, follows the alias             |
+| Tests                  | `tests/`                                             | `uv run pytest`                                                          |
+| Image                  | `Dockerfile`, CI publishes `ghcr.io/{{ github_owner }}/{{ service_name }}` | `main` and `sha-<commit>` tags, non-root                                 |
+| CI                     | `.github/workflows/{{ service_name }}-ci.yml`        | ruff, mypy, pytest, image build; publish on main                         |
+| Helm chart             | `platform/charts/{{ service_name }}/`                | Probes, resource limits, read-only root filesystem                       |
+| Deployment             | `platform/gitops/apps/{{ service_name }}.yaml`       | One Argo CD app per `platform/gitops/envs/<env>/{{ service_name }}.yaml` |
+| Model card, eval gate  | `docs/model-card.md`, `eval/thresholds.yaml`         | Fill in before the first prod promotion                                  |
+
+## Develop
+
+```bash
+cd {{ service_name }}
+uv sync
+uv run pytest
+SERVICE_MLFLOW_TRACKING_URI=http://localhost:5001 SERVICE_SERVING_ALIAS=dev uv run uvicorn {{ package_name }}.app:app --reload
+```
+
+## Ship
+
+1. Register a model named `{{ model_name }}` in the platform registry with the `dev` alias (`make registry-ui` for a port-forward). Dev deploys from `main` and turns ready once `@dev` exists.
+2. Image to test: `make promote-image SERVICE={{ service_name }} ENV=test`, then `ENV=prod`. Each opens a PR; CI checks the tag is immutable, exists, and (for prod) has been in test.
+3. Model to staging/prod: move the `staging` / `prod` alias. Prod needs a named approver. The API picks up the new version within 30 s.

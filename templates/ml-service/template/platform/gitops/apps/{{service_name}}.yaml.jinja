@@ -1,0 +1,34 @@
+# One Argo CD app per environment that has platform/gitops/envs/<env>/{{ service_name }}.yaml.
+# Dev exists from the start; test and prod appear with their first promotion PR.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ service_name }}
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/{{ github_owner }}/telcoai-platform.git
+        revision: main
+        files:
+          - path: platform/gitops/envs/*/{{ service_name }}.yaml
+  template:
+    metadata:
+      name: "{{ service_name }}-{% raw %}{{ index .path.segments 3 }}{% endraw %}"
+      finalizers: [resources-finalizer.argocd.argoproj.io]
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/{{ github_owner }}/telcoai-platform.git
+        targetRevision: main
+        path: platform/charts/{{ service_name }}
+        helm:
+          releaseName: {{ service_name }}
+          valueFiles: ["../../gitops/envs/{% raw %}{{ index .path.segments 3 }}{% endraw %}/{{ service_name }}.yaml"]
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "telcoai-{% raw %}{{ index .path.segments 3 }}{% endraw %}"
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }

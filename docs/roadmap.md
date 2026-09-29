@@ -48,9 +48,9 @@ Status as of 2026-09-29.
 | Test and prod: ApplicationSet (one app per env folder), dev/test/prod serve @dev/@staging/@prod of one registry | Done | `platform/gitops/` |
 | Image promotion by PR (immutable `sha-` tags, prod only after test, checked in CI); rollback = revert | Done | `make promote-image`, `platform/scripts/check-promotions.sh` |
 | API follows its alias: starts unready (`/health` 503, `/livez` for liveness), picks up promotions and rollbacks without a restart | Done | `churn/src/churn/serve/app.py` |
-| Support assistant chart (Qdrant, Ollama)                                                               | Next |                                                               |
-| Copier service template                                                                                | Planned |                                                               |
-| SLO report, runbooks, a postmortem                                                                     | Planned |                                                               |
+| Support assistant chart (Qdrant, Ollama)                                                               | Planned (needs more memory than the shared VM has) |                                                               |
+| Copier service template (`make new-service`), generic promotion scripts and manifest checks for every service, template tested in CI | Done | `templates/ml-service/`, `.github/workflows/template-ci.yml` |
+| SLO report, runbooks, a postmortem                                                                     | Next |                                                               |
 | Optional one-weekend Azure run                                                                         | Planned |                                                               |
 
 ## Local environment notes

@@ -1,0 +1,59 @@
+name: template-ci
+
+# Generates a service from templates/ml-service and runs everything a real service's CI and the
+# platform checks would run on it, so a template change can't hand teams a broken starting point.
+on:
+  push:
+    branches: [main]
+    paths:
+      [
+        "templates/**",
+        "platform/scripts/**",
+        ".github/workflows/template-ci.yml",
+      ]
+  pull_request:
+    paths:
+      [
+        "templates/**",
+        "platform/scripts/**",
+        ".github/workflows/template-ci.yml",
+      ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  KUBECONFORM_VERSION: v0.8.0
+  OUT: ${{ github.workspace }}/../generated
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.0
+      - name: Install kubeconform
+        run: |
+          curl -sSfL -o kc.tar.gz "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+          tar -xzf kc.tar.gz kubeconform && sudo mv kubeconform /usr/local/bin/
+      - name: Generate demo-svc
+        run: |
+          uvx copier@9.18.2 copy --trust --defaults --data service_name=demo-svc \
+            --answers-file demo-svc/.copier-answers.yml templates/ml-service "$OUT"
+          cp -r platform/scripts "$OUT/platform/"
+      - name: Service checks (what demo-svc-ci would run)
+        working-directory: ${{ env.OUT }}/demo-svc
+        run: |
+          uv sync --locked
+          uv run ruff check . && uv run ruff format --check .
+          uv run mypy src
+          uv run pytest
+      - name: Chart and Argo CD app
+        working-directory: ${{ env.OUT }}
+        run: sh platform/scripts/validate-manifests.sh
+      - name: Image builds
+        run: docker build -t demo-svc:ci "$OUT/demo-svc"

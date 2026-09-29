@@ -1,4 +1,4 @@
-.PHONY: install lint test check mlflow download data train features pipeline promote serve monitor simulate rag-ingest rag-eval rag-eval-gen demo-drift up serve-docker ps down cluster-up cluster-down kubeconfig platform-apply argocd-ui registry-ui promote-image
+.PHONY: install lint test check mlflow download data train features pipeline promote serve monitor simulate rag-ingest rag-eval rag-eval-gen demo-drift up serve-docker ps down cluster-up cluster-down kubeconfig platform-apply argocd-ui registry-ui promote-image new-service
 
 export MLFLOW_DISABLE_AGENT_HINT := 1
 COMPOSE := sh scripts/compose.sh
@@ -104,5 +104,8 @@ argocd-ui:          ## Argo CD on http://localhost:8081 (user admin, password pr
 registry-ui:        ## shared MLflow registry on http://localhost:5001 (then: make promote with CHURN_MLFLOW_TRACKING_URI=http://localhost:5001)
 	$(KUBE) kubectl -n telcoai-registry port-forward svc/mlflow 5001:5000
 
-promote-image:      ## PR that deploys an image: make promote-image ENV=test [SHA=<commit>] | ENV=prod
-	sh platform/scripts/promote-image.sh $(ENV) $(SHA)
+promote-image:      ## PR that deploys an image: make promote-image [SERVICE=churn-api] ENV=test [SHA=<commit>] | ENV=prod
+	sh platform/scripts/promote-image.sh $(or $(SERVICE),churn-api) $(ENV) $(SHA)
+
+new-service:        ## scaffold a model service wired into the platform: make new-service NAME=fraud-score
+	uvx copier@9.18.2 copy --trust --data service_name=$(NAME) --answers-file $(NAME)/.copier-answers.yml templates/ml-service .
