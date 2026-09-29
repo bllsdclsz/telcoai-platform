@@ -1,4 +1,4 @@
-.PHONY: install lint test check mlflow download data train features pipeline promote serve monitor simulate rag-ingest rag-eval demo-drift up serve-docker ps down
+.PHONY: install lint test check mlflow download data train features pipeline promote serve monitor simulate rag-ingest rag-eval rag-eval-gen demo-drift up serve-docker ps down
 
 export MLFLOW_DISABLE_AGENT_HINT := 1
 COMPOSE := sh scripts/compose.sh
@@ -49,6 +49,10 @@ rag-ingest:         ## index the help-center corpus (support-rag)
 rag-eval:           ## retrieval + safety evaluation gates (support-rag)
 	uv run rag eval-retrieval --gate
 	uv run rag eval-safety --gate
+
+rag-eval-gen:       ## answer-quality gate with local LLMs + judge (before prompt/model changes)
+	uv run rag calibrate-judge
+	uv run rag eval-generation --gate
 
 monitor:            ## Prefect drift check on recent predictions; retrains on drift
 	uv run churn monitor

@@ -1,0 +1,179 @@
+# Answer-quality evaluation: `rag eval-generation`.
+# expect: answer -> the reply must contain every fact (alternatives separated by "|"), cite a
+#                   source and be in the question's language;
+# expect: decline -> the help center does not cover it: the assistant must not answer.
+# Facts are checked against the corpus in support-rag/corpus.
+
+# --- German
+- {
+    q: "Mir wurde das Handy im Zug gestohlen. Was kostet eine neue SIM?",
+    lang: de,
+    expect: answer,
+    facts: ["40"],
+  }
+- {
+    q: "Wie lange dauert es, meine Nummer zu Nordalp mitzunehmen?",
+    lang: de,
+    expect: answer,
+    facts: ["3", "5"],
+  }
+- {
+    q: "Wie viel kostet die Papierrechnung?",
+    lang: de,
+    expect: answer,
+    facts: ["3.50|3,50"],
+  }
+- {
+    q: "Was kostet die zweite Mahnung?",
+    lang: de,
+    expect: answer,
+    facts: ["30"],
+  }
+- {
+    q: "Wie lange ist der Link zum Zurücksetzen des Passworts gültig?",
+    lang: de,
+    expect: answer,
+    facts: ["1 Stunde|eine Stunde"],
+  }
+- {
+    q: "Wie viele Stunden Aufnahmen kann ich mit Nordalp TV speichern?",
+    lang: de,
+    expect: answer,
+    facts: ["500"],
+  }
+# --- French
+- {
+    q: "Combien de données ai-je en Italie avec Swiss+ ?",
+    lang: fr,
+    expect: answer,
+    facts: ["5"],
+  }
+- {
+    q: "Quel est le délai de résiliation de mon abonnement ?",
+    lang: fr,
+    expect: answer,
+    facts: ["2"],
+  }
+- {
+    q: "Combien coûte le répéteur Wi-Fi ?",
+    lang: fr,
+    expect: answer,
+    facts: ["99"],
+  }
+- {
+    q: "Combien coûte le Data Booster ?",
+    lang: fr,
+    expect: answer,
+    facts: ["9"],
+  }
+- {
+    q: "En combien de temps répondez-vous à une demande d'accès à mes données ?",
+    lang: fr,
+    expect: answer,
+    facts: ["30"],
+  }
+- {
+    q: "Combien coûte le technicien lors d'un déménagement ?",
+    lang: fr,
+    expect: answer,
+    facts: ["99"],
+  }
+# --- Italian
+- {
+    q: "Quanto costa il secondo sollecito se pago in ritardo?",
+    lang: it,
+    expect: answer,
+    facts: ["30"],
+  }
+- {
+    q: "Quanto costa chiamare gli Stati Uniti dalla Svizzera?",
+    lang: it,
+    expect: answer,
+    facts: ["1.00|1,00|1.-|1 franco"],
+  }
+- {
+    q: "Per quanti giorni posso rivedere i programmi con Replay?",
+    lang: it,
+    expect: answer,
+    facts: ["7"],
+  }
+- {
+    q: "Quanto costa una SIM sostitutiva?",
+    lang: it,
+    expect: answer,
+    facts: ["40"],
+  }
+- {
+    q: "Quanti giorni lavorativi dura una riparazione?",
+    lang: it,
+    expect: answer,
+    facts: ["10"],
+  }
+- {
+    q: "Dopo quanti tentativi falliti viene bloccato il conto?",
+    lang: it,
+    expect: answer,
+    facts: ["5"],
+  }
+# --- English
+- {
+    q: "Why is my first invoice higher than the next ones?",
+    lang: en,
+    expect: answer,
+    facts: ["pro rata|pro-rata|pro‑rata|prorated"],
+  }
+- {
+    q: "How long is the password reset link valid?",
+    lang: en,
+    expect: answer,
+    facts: ["1 hour|one hour"],
+  }
+- {
+    q: "What does a Zone 3 travel pack cost?",
+    lang: en,
+    expect: answer,
+    facts: ["39"],
+  }
+- {
+    q: "How much data is included when roaming in the EU with Swiss+?",
+    lang: en,
+    expect: answer,
+    facts: ["5"],
+  }
+- {
+    q: "How long do you keep my call records?",
+    lang: en,
+    expect: answer,
+    facts: ["6"],
+  }
+- {
+    q: "What speed do I get after using up my data volume?",
+    lang: en,
+    expect: answer,
+    facts: ["128"],
+  }
+# --- Not covered by the help center
+- { q: "Avete offerte speciali per studenti?", lang: it, expect: decline }
+- {
+    q: "La rete Nordalp funziona in galleria sul Gottardo?",
+    lang: it,
+    expect: decline,
+  }
+- {
+    q: "How much does the new iPhone cost at Nordalp?",
+    lang: en,
+    expect: decline,
+  }
+- { q: "Do you offer 5G coverage in Zermatt?", lang: en, expect: decline }
+- {
+    q: "Proposez-vous des abonnements pour les entreprises ?",
+    lang: fr,
+    expect: decline,
+  }
+- {
+    q: "Où se trouve le shop Nordalp le plus proche de Fribourg ?",
+    lang: fr,
+    expect: decline,
+  }
+- { q: "Habt ihr Stellenangebote für Lernende?", lang: de, expect: decline }
+- { q: "Welche Handys sind gerade im Angebot?", lang: de, expect: decline }
