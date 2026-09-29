@@ -33,9 +33,11 @@ class Settings(BaseSettings):
     # Generation. Any LiteLLM model string works, e.g. "anthropic/<model>" with its API key.
     prompts_dir: Path = PACKAGE_DIR / "prompts"
     prompt_version: int | None = None  # None -> latest version
-    llm_model: str = "ollama_chat/granite4.2:3b"
+    # Chosen by comparison (support-rag/README.md): newest model with clean, correct answers.
+    llm_model: str = "ollama_chat/granite4.2:8b"
     llm_api_base: str | None = "http://127.0.0.1:11434"
     temperature: float = 0.0
+    reasoning_effort: str | None = "none"  # thinking off; see llm.LiteLLMChat
     max_tokens: int = 400
     answer_top_k: int = 4
     # First, cheap scope filter: below this best-match score the question is answered with the

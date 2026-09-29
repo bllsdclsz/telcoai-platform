@@ -28,7 +28,7 @@ FALLBACK = {
 }
 _CITATION = re.compile(r"\[(\d+)\]")
 
-Reason = Literal["answered", "no_relevant_sources", "model_no_answer"]
+Reason = Literal["answered", "no_relevant_sources", "model_no_answer", "generation_failed"]
 
 
 @dataclass(frozen=True)
@@ -128,7 +128,11 @@ class Assistant:
             input_tokens=completion.input_tokens,
             output_tokens=completion.output_tokens,
         )
-        if NO_ANSWER in completion.text or not completion.text:
+        # An empty reply is a failure (e.g. cut off by max_tokens), not the model declining:
+        # the customer still gets the fallback, but evals and logs must be able to tell them apart.
+        if not completion.text:
+            return replace(generated, reason="generation_failed")
+        if NO_ANSWER in completion.text:
             return replace(generated, reason="model_no_answer")
 
         by_number = {s.n: s for s in sources}

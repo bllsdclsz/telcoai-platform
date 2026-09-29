@@ -77,6 +77,15 @@ def test_model_no_answer_becomes_localized_fallback(
     assert not answer.cited
 
 
+def test_empty_reply_is_a_generation_failure_not_a_decline(
+    client: QdrantClient, settings: Settings
+) -> None:
+    bot, _ = assistant(client, settings, "<think>long reasoning, then cut off</think>")
+    answer = bot.ask(QUESTION, "fr")
+    assert answer.reason == "generation_failed" and answer.text == FALLBACK["fr"]
+    assert not answer.answered
+
+
 def test_irrelevant_question_is_not_sent_to_the_model(
     client: QdrantClient, settings: Settings
 ) -> None:
@@ -89,6 +98,9 @@ def test_irrelevant_question_is_not_sent_to_the_model(
 def test_reasoning_blocks_are_stripped() -> None:
     assert clean_output("<think>\nplan...\n</think>\nCHF 40 [1].") == "CHF 40 [1]."
     assert clean_output("<think></think>Ciao") == "Ciao"
+    # Dangling closing tag: the opening one was part of the chat template.
+    dangling = "We need one sentence. [1]\nOk.\n</think>\nCHF 30 [1]."
+    assert clean_output(dangling) == "CHF 30 [1]."
 
 
 def test_number_sources_keeps_best_chunk_per_article() -> None:

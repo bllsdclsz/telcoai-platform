@@ -44,7 +44,7 @@ def build_assistant(settings: Settings | None = None) -> Assistant:
     sparse = FastEmbedSparse(s.sparse_model) if s.sparse_model else None
     return Assistant(
         Retriever(connect(s), s.collection, FastEmbedDense(s.dense_model), sparse),
-        LiteLLMChat(s.llm_model, api_base=s.llm_api_base),
+        LiteLLMChat(s.llm_model, api_base=s.llm_api_base, reasoning_effort=s.reasoning_effort),
         load_prompt(s.prompts_dir, "answer", s.prompt_version),
         top_k=s.answer_top_k,
         min_score=s.min_retrieval_score,
