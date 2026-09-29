@@ -1,0 +1,35 @@
+category: internet
+updated: 2026-08-01
+translations:
+  en:
+    title: Setting up your Internet-Box
+    body: |
+      Connect the fibre or DSL cable to the port marked WAN on the Internet-Box 4, then plug in the power supply. The first start can take up to 10 minutes.
+
+      The light on the front shows the status: blinking white means the box is starting, steady white means you are online, red means there is no connection, and blue means the box is ready to pair a device via WPS.
+
+      The Wi-Fi name and password are printed on the sticker underneath the box. Advanced settings are available at http://192.168.1.1.
+  de:
+    title: Ihre Internet-Box einrichten
+    body: |
+      Verbinden Sie das Glasfaser- oder DSL-Kabel mit dem Anschluss WAN der Internet-Box 4 und schliessen Sie dann das Netzteil an. Der erste Start kann bis zu 10 Minuten dauern.
+
+      Das Licht vorne zeigt den Status: Weiss blinkend bedeutet, dass die Box startet, weiss leuchtend heisst, Sie sind online, rot bedeutet keine Verbindung, und blau heisst, die Box ist bereit, ein Gerät per WPS zu koppeln.
+
+      WLAN-Name und Passwort stehen auf dem Kleber unter der Box. Erweiterte Einstellungen finden Sie unter http://192.168.1.1.
+  fr:
+    title: Installer votre Internet-Box
+    body: |
+      Branchez le câble fibre ou DSL sur le port WAN de l'Internet-Box 4, puis branchez l'alimentation. Le premier démarrage peut prendre jusqu'à 10 minutes.
+
+      Le voyant à l'avant indique l'état : blanc clignotant signifie que la box démarre, blanc fixe que vous êtes en ligne, rouge qu'il n'y a pas de connexion, et bleu que la box est prête à appairer un appareil par WPS.
+
+      Le nom et le mot de passe du Wi-Fi figurent sur l'étiquette sous la box. Les réglages avancés sont disponibles sur http://192.168.1.1.
+  it:
+    title: Installare la Internet-Box
+    body: |
+      Collega il cavo in fibra o DSL alla porta WAN della Internet-Box 4, poi collega l'alimentatore. Il primo avvio può durare fino a 10 minuti.
+
+      La spia sul davanti indica lo stato: bianco lampeggiante significa che la box si sta avviando, bianco fisso che sei online, rosso che non c'è connessione e blu che la box è pronta ad associare un dispositivo tramite WPS.
+
+      Il nome e la password del Wi-Fi sono stampati sull'etichetta sotto la box. Le impostazioni avanzate sono disponibili su http://192.168.1.1.

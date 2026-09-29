@@ -1,0 +1,35 @@
+category: internet
+updated: 2026-08-01
+translations:
+  en:
+    title: Improving slow Wi-Fi
+    body: |
+      Place the Internet-Box centrally and a little elevated, not inside a cabinet or behind the TV. Walls, mirrors and aquariums weaken the signal.
+
+      Use the 5 GHz band for the highest speed close to the box and the 2.4 GHz band for better range through walls. Restarting the box once a month also helps.
+
+      For large flats or several floors, the Nordalp Wi-Fi Extender creates a mesh network; it costs CHF 99 or can be rented for CHF 4 per month. To check your real speed, run the test at speedtest.nordalp.example with a computer connected by LAN cable.
+  de:
+    title: Langsames WLAN verbessern
+    body: |
+      Stellen Sie die Internet-Box zentral und etwas erhöht auf, nicht in einen Schrank oder hinter den Fernseher. Wände, Spiegel und Aquarien schwächen das Signal.
+
+      Nutzen Sie das 5-GHz-Band für die höchste Geschwindigkeit in der Nähe der Box und das 2,4-GHz-Band für eine bessere Reichweite durch Wände. Ein Neustart der Box einmal pro Monat hilft ebenfalls.
+
+      Für grosse Wohnungen oder mehrere Stockwerke baut der Nordalp Wi-Fi Extender ein Mesh-Netz auf; er kostet CHF 99 oder kann für CHF 4 pro Monat gemietet werden. Ihre effektive Geschwindigkeit messen Sie auf speedtest.nordalp.example mit einem per LAN-Kabel verbundenen Computer.
+  fr:
+    title: Améliorer un Wi-Fi lent
+    body: |
+      Placez l'Internet-Box au centre du logement et un peu en hauteur, pas dans une armoire ni derrière la télévision. Les murs, les miroirs et les aquariums affaiblissent le signal.
+
+      Utilisez la bande 5 GHz pour le débit le plus élevé près de la box et la bande 2,4 GHz pour une meilleure portée à travers les murs. Redémarrer la box une fois par mois aide aussi.
+
+      Pour les grands appartements ou plusieurs étages, le Nordalp Wi-Fi Extender crée un réseau maillé ; il coûte CHF 99 ou peut être loué pour CHF 4 par mois. Pour mesurer votre débit réel, faites le test sur speedtest.nordalp.example avec un ordinateur branché par câble LAN.
+  it:
+    title: Migliorare un Wi-Fi lento
+    body: |
+      Posiziona la Internet-Box al centro dell'abitazione e un po' in alto, non dentro un armadio o dietro la TV. Muri, specchi e acquari indeboliscono il segnale.
+
+      Usa la banda 5 GHz per la massima velocità vicino alla box e la banda 2,4 GHz per una migliore copertura attraverso i muri. Anche riavviare la box una volta al mese aiuta.
+
+      Per appartamenti grandi o su più piani, il Nordalp Wi-Fi Extender crea una rete mesh; costa CHF 99 oppure si può noleggiare a CHF 4 al mese. Per misurare la velocità reale, esegui il test su speedtest.nordalp.example con un computer collegato via cavo LAN.

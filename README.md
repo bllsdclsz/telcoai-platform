@@ -5,7 +5,7 @@ An end-to-end ML and GenAI platform for a telecom operator: it covers taking mod
 | Component          | What it shows                                                                                                                             | Status      |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
 | [`churn/`](churn/) | Churn prediction: validated data, reproducible training, MLflow registry with dev→staging→prod aliases, quality gate, FastAPI serving, CI | In progress |
-| `support-rag/`     | Multilingual (DE/FR/IT/EN) customer-support RAG assistant: evaluation harness, guardrails, audit logging                                  | Planned     |
+| [`support-rag/`](support-rag/) | Multilingual (DE/FR/IT/EN) customer-support RAG assistant: benchmarked multilingual retrieval (Qdrant), evaluation gate in CI; next: local LLM generation, guardrails, audit logging | In progress |
 | `platform/`        | Terraform, Kubernetes, Argo CD GitOps, monitoring/SLOs, service template, runbooks                                                        | Planned     |
 
 ## Quick start

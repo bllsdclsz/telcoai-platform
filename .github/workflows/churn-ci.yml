@@ -44,7 +44,7 @@ jobs:
       - name: Type check
         run: uv run mypy churn/src
       - name: Test
-        run: uv run pytest -p no:warnings
+        run: uv run pytest -p no:warnings churn/tests
 
   image:
     needs: test
