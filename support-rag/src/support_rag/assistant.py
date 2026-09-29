@@ -1,6 +1,8 @@
 """Answer customer questions: retrieve articles, generate a cited answer, or fall back safely."""
 
 import re
+import time
+import uuid
 from dataclasses import dataclass, field, replace
 from typing import Literal
 
@@ -9,6 +11,7 @@ from support_rag.injection_model import InjectionClassifier
 from support_rag.llm import ChatModel
 from support_rag.prompts import PromptTemplate
 from support_rag.retrieve import Hit, Retriever
+from support_rag.tracing import NOOP_TRACER, Tracer
 
 NO_ANSWER = "NO_ANSWER"
 LANGUAGE_NAMES = {
@@ -73,6 +76,9 @@ class Answer:
     output_tokens: int = 0
     pii_redacted: list[str] = field(default_factory=list)
     guard_detail: str = ""
+    question: str = ""  # redacted: safe to log and trace
+    request_id: str = ""
+    total_ms: float = 0.0
 
     @property
     def answered(self) -> bool:
@@ -111,15 +117,38 @@ class Assistant:
         temperature: float = 0.0,
         max_tokens: int = 400,
         injection_classifier: InjectionClassifier | None = None,
+        tracer: Tracer = NOOP_TRACER,
     ) -> None:
         self.retriever, self.llm, self.prompt = retriever, llm, prompt
         self.top_k, self.min_score = top_k, min_score
         self.temperature, self.max_tokens = temperature, max_tokens
         self.injection_classifier = injection_classifier
+        self.tracer = tracer
 
-    def ask(self, question: str, lang: str) -> Answer:
+    def ask(self, question: str, lang: str, request_id: str | None = None) -> Answer:
+        """Answer one question; with tracing on, this is one MLflow trace (the audit record)."""
+        request_id = request_id or str(uuid.uuid4())
+        start = time.perf_counter()
+        with self.tracer.span("support_answer", "CHAIN") as root:
+            answer = self._answer(question, lang)
+            answer = replace(
+                answer,
+                request_id=request_id,
+                total_ms=round(1000 * (time.perf_counter() - start), 1),
+            )
+            # Only the redacted question is recorded: personal data never reaches the traces.
+            root.set_inputs({"question": answer.question, "lang": lang})
+            root.set_outputs({"answer": answer.text, "reason": answer.reason})
+            self.tracer.tag_trace(request_id, audit_tags(answer), answer.question, answer.text)
+        return answer
+
+    def _answer(self, question: str, lang: str) -> Answer:
+        tracer = self.tracer
         # Input guards: redact personal data first, so it reaches neither the model nor logs.
-        redaction = redact_pii(question.strip())
+        with tracer.span("input_guards", "GUARDRAIL") as span:
+            redaction = redact_pii(question.strip())
+            pattern = detect_injection(question)
+            span.set_outputs({"pii_types": redaction.found, "injection_rule": pattern})
         base = Answer(
             FALLBACK[lang],
             lang,
@@ -127,39 +156,62 @@ class Assistant:
             prompt=self.prompt.ref,
             prompt_sha256=self.prompt.sha256,
             pii_redacted=redaction.found,
+            question=redaction.text,
         )
-        if pattern := detect_injection(question):
+        if pattern:
             return replace(base, text=BLOCKED[lang], reason="blocked_input", guard_detail=pattern)
         question = redaction.text
 
         # One embedding serves both the learned injection check and retrieval.
-        vector = self.retriever.dense.embed_query(question)
+        with tracer.span("embed_query", "EMBEDDING", {"text": question}):
+            vector = self.retriever.dense.embed_query(question)
         if self.injection_classifier is not None:
-            p = self.injection_classifier.probability(vector)
-            if p > self.injection_classifier.threshold:
+            with tracer.span("injection_classifier", "GUARDRAIL") as span:
+                p = self.injection_classifier.probability(vector)
+                blocked = p > self.injection_classifier.threshold
+                span.set_outputs({"probability": round(p, 4), "blocked": blocked})
+            if blocked:
                 detail = f"injection classifier p={p:.2f}"
                 return replace(
                     base, text=BLOCKED[lang], reason="blocked_input", guard_detail=detail
                 )
 
-        hits = self.retriever.search(question, k=self.top_k, lang=lang, vector=vector)
-        sources = number_sources(hits)
+        with tracer.span("retrieve", "RETRIEVER", {"query": question, "lang": lang}) as span:
+            hits = self.retriever.search(question, k=self.top_k, lang=lang, vector=vector)
+            sources = number_sources(hits)
+            span.set_outputs(
+                [
+                    {"n": s.n, "article_id": s.article_id, "score": round(s.score, 4)}
+                    for s in sources
+                ]
+            )
         fallback = replace(base, retrieved=sources)
         # Nothing relevant in the help center: answer with the fallback, don't call the model.
         if not sources or sources[0].score < self.min_score:
             return fallback
 
-        completion = self.llm.complete(
-            self.prompt.render(
-                language_name=LANGUAGE_NAMES[lang],
-                no_answer=NO_ANSWER,
-                canary=CANARY,
-                sources=format_sources(sources),
-                question=question,
-            ),
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-        )
+        with tracer.span(
+            "generate", "CHAT_MODEL", {"model": self.llm.model, "prompt": self.prompt.ref}
+        ) as span:
+            completion = self.llm.complete(
+                self.prompt.render(
+                    language_name=LANGUAGE_NAMES[lang],
+                    no_answer=NO_ANSWER,
+                    canary=CANARY,
+                    sources=format_sources(sources),
+                    question=question,
+                ),
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+            )
+            span.set_outputs(
+                {
+                    "text": completion.text,
+                    "input_tokens": completion.input_tokens,
+                    "output_tokens": completion.output_tokens,
+                    "finish_reason": completion.finish_reason,
+                }
+            )
         generated = replace(
             fallback,
             model=completion.model,
@@ -167,22 +219,44 @@ class Assistant:
             input_tokens=completion.input_tokens,
             output_tokens=completion.output_tokens,
         )
+        with tracer.span("output_guards", "GUARDRAIL") as span:
+            result = self._check_output(generated, completion.text, sources, question)
+            span.set_outputs({"reason": result.reason, "detail": result.guard_detail})
+        return result
+
+    def _check_output(
+        self, generated: Answer, text: str, sources: list[Source], question: str
+    ) -> Answer:
         # An empty reply is a failure (e.g. cut off by max_tokens), not the model declining:
         # the customer still gets the fallback, but evals and logs must be able to tell them apart.
-        if not completion.text:
+        if not text:
             return replace(generated, reason="generation_failed")
-        if NO_ANSWER in completion.text:
+        if NO_ANSWER in text:
             return replace(generated, reason="model_no_answer")
-
-        # Output guards: never show a leaked system prompt or an answer its sources don't support.
-        if CANARY in completion.text:
+        # Never show a leaked system prompt or an answer its sources don't support.
+        if CANARY in text:
             return replace(generated, reason="blocked_output", guard_detail="canary leaked")
         by_number = {s.n: s for s in sources}
-        cited = [by_number[n] for n in cited_numbers(completion.text) if n in by_number]
+        cited = [by_number[n] for n in cited_numbers(text) if n in by_number]
         if not cited:
             return replace(generated, reason="ungrounded", guard_detail="no valid citation")
-        unsupported = unsupported_numbers(completion.text, [c.text for c in cited], question)
+        unsupported = unsupported_numbers(text, [c.text for c in cited], question)
         if unsupported:
             detail = f"numbers not in cited sources: {', '.join(unsupported)}"
             return replace(generated, reason="ungrounded", cited=cited, guard_detail=detail)
-        return replace(generated, text=completion.text, reason="answered", cited=cited)
+        return replace(generated, text=text, reason="answered", cited=cited)
+
+
+def audit_tags(answer: Answer) -> dict[str, str]:
+    """Trace tags for audit queries (e.g. all blocked requests); PII only by type, never value."""
+    return {
+        "lang": answer.lang,
+        "reason": answer.reason,
+        "guard": answer.guard_detail[:250],
+        "pii_types": ",".join(answer.pii_redacted),
+        "prompt": answer.prompt,
+        "prompt_sha256": answer.prompt_sha256[:12],
+        "model": answer.model,
+        "cited": ",".join(s.article_id for s in answer.cited),
+        "total_ms": str(answer.total_ms),
+    }

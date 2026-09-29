@@ -1,6 +1,5 @@
 """HTTP API for the support assistant."""
 
-import uuid
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 
@@ -10,6 +9,7 @@ from pydantic import BaseModel, Field
 from support_rag.assistant import Answer, Assistant
 from support_rag.config import Language, Settings
 from support_rag.injection_model import InjectionClassifier
+from support_rag.tracing import Tracer
 
 
 class AskRequest(BaseModel):
@@ -60,12 +60,13 @@ def build_assistant(settings: Settings | None = None) -> Assistant:
         temperature=s.temperature,
         max_tokens=s.max_tokens,
         injection_classifier=classifier,
+        tracer=Tracer(s.trace_mlflow_uri, s.trace_experiment),
     )
 
 
 def to_response(answer: Answer) -> AskResponse:
     return AskResponse(
-        request_id=str(uuid.uuid4()),
+        request_id=answer.request_id,
         answer=answer.text,
         answered=answer.answered,
         reason=answer.reason,
