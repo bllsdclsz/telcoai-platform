@@ -19,6 +19,9 @@ Policy: use the latest stable release of every tool, locked in `uv.lock` (Python
 | Optuna               | 5.0.0                                                     | Pipeline extra                                                                    |
 | pytest / ruff / mypy | 9.1.1 / 0.16.9 / 2.3.1                                    |                                                                                   |
 | prometheus-client | 0.24.1 | **Held back:** feast 0.66 requires `prometheus-client<0.25` (latest is 0.26.0) |
+| qdrant-client / fastembed / onnxruntime | 1.19.1 / 0.8.1 / 1.30.0 | support-rag; ONNX embeddings, no PyTorch |
+| Embedding model | `intfloat/multilingual-e5-large` | Chosen by benchmark (support-rag/README.md) |
+| Local LLM (planned) | IBM Granite 4.2 3B / 8B via Ollama 0.22 | Newest multilingual model that fits a 6 GB GPU |
 | httpx2               | 2.13.1                                                    | Starlette's test client has deprecated `httpx` in favour of `httpx2`              |
 | MLflow server image  | `ghcr.io/mlflow/mlflow:v3.16.1`                           |                                                                                   |
 | Prometheus / Grafana images | `prom/prometheus:v3.15.0` / `grafana/grafana:13.2.2` | |

@@ -1,0 +1,35 @@
+category: mobile
+updated: 2026-08-15
+translations:
+  en:
+    title: Switching to an eSIM
+    body: |
+      You can switch from a physical SIM card to an eSIM free of charge. In the Nordalp app, go to My account > SIM > Switch to eSIM. You will receive a QR code by email within 15 minutes.
+
+      On your phone, open Settings > Mobile data > Add eSIM and scan the QR code. As soon as the eSIM is active, your old physical SIM card stops working. Your number and plan stay the same.
+
+      Moving the eSIM to a new phone requires a new profile, which costs CHF 10.
+  de:
+    title: Wechsel auf eine eSIM
+    body: |
+      Sie können kostenlos von einer physischen SIM-Karte auf eine eSIM wechseln. Gehen Sie in der Nordalp-App zu Mein Konto > SIM > Auf eSIM wechseln. Sie erhalten innert 15 Minuten einen QR-Code per E-Mail.
+
+      Öffnen Sie auf Ihrem Handy Einstellungen > Mobile Daten > eSIM hinzufügen und scannen Sie den QR-Code. Sobald die eSIM aktiv ist, funktioniert Ihre alte physische SIM-Karte nicht mehr. Nummer und Abo bleiben gleich.
+
+      Für den Umzug der eSIM auf ein neues Handy braucht es ein neues Profil; dieses kostet CHF 10.
+  fr:
+    title: Passer à une eSIM
+    body: |
+      Vous pouvez passer gratuitement d'une carte SIM physique à une eSIM. Dans l'app Nordalp, allez dans Mon compte > SIM > Passer à l'eSIM. Vous recevez un code QR par e-mail dans les 15 minutes.
+
+      Sur votre téléphone, ouvrez Réglages > Données mobiles > Ajouter une eSIM et scannez le code QR. Dès que l'eSIM est active, votre ancienne carte SIM physique ne fonctionne plus. Votre numéro et votre abonnement restent les mêmes.
+
+      Transférer l'eSIM sur un nouveau téléphone nécessite un nouveau profil, qui coûte CHF 10.
+  it:
+    title: Passare a una eSIM
+    body: |
+      Puoi passare gratuitamente da una SIM fisica a una eSIM. Nell'app Nordalp vai su Il mio conto > SIM > Passa all'eSIM. Riceverai un codice QR via e-mail entro 15 minuti.
+
+      Sul telefono apri Impostazioni > Dati mobili > Aggiungi eSIM e scansiona il codice QR. Non appena l'eSIM è attiva, la vecchia SIM fisica smette di funzionare. Il numero e l'abbonamento restano invariati.
+
+      Per trasferire l'eSIM su un nuovo telefono serve un nuovo profilo, che costa CHF 10.

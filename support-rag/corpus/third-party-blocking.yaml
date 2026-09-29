@@ -1,0 +1,35 @@
+category: billing
+updated: 2026-06-30
+translations:
+  en:
+    title: Blocking premium numbers and third-party services
+    body: |
+      Premium numbers (0900, 0901, 0906) and third-party services, such as subscriptions for games or ringtones billed through your phone invoice, can cause unexpected costs.
+
+      You can block them free of charge in the app under Security > Blocks. For users under 16, these services are blocked by default.
+
+      If you dispute a third-party charge, contact the provider named on your invoice first. We block the service immediately on request, so no further charges occur.
+  de:
+    title: Mehrwertnummern und Drittanbieterdienste sperren
+    body: |
+      Mehrwertnummern (0900, 0901, 0906) und Drittanbieterdienste, etwa Abos für Spiele oder Klingeltöne, die über Ihre Handyrechnung abgerechnet werden, können unerwartete Kosten verursachen.
+
+      Sie können diese kostenlos in der App unter Sicherheit > Sperren blockieren. Für Nutzerinnen und Nutzer unter 16 Jahren sind diese Dienste standardmässig gesperrt.
+
+      Bestreiten Sie eine Drittanbieterbelastung, wenden Sie sich zuerst an den auf Ihrer Rechnung genannten Anbieter. Auf Wunsch sperren wir den Dienst sofort, damit keine weiteren Kosten entstehen.
+  fr:
+    title: Bloquer les numéros surtaxés et les services de tiers
+    body: |
+      Les numéros surtaxés (0900, 0901, 0906) et les services de tiers, par exemple des abonnements à des jeux ou des sonneries facturés via votre facture de téléphone, peuvent entraîner des coûts inattendus.
+
+      Vous pouvez les bloquer gratuitement dans l'app sous Sécurité > Blocages. Pour les utilisateurs de moins de 16 ans, ces services sont bloqués par défaut.
+
+      Si vous contestez un débit d'un tiers, contactez d'abord le fournisseur indiqué sur votre facture. Sur demande, nous bloquons immédiatement le service afin qu'aucun autre frais ne soit facturé.
+  it:
+    title: Bloccare numeri a valore aggiunto e servizi di terzi
+    body: |
+      I numeri a valore aggiunto (0900, 0901, 0906) e i servizi di terzi, come abbonamenti a giochi o suonerie addebitati sulla fattura telefonica, possono causare costi imprevisti.
+
+      Puoi bloccarli gratuitamente nell'app in Sicurezza > Blocchi. Per gli utenti sotto i 16 anni questi servizi sono bloccati per impostazione predefinita.
+
+      Se contesti un addebito di terzi, contatta prima il fornitore indicato in fattura. Su richiesta blocchiamo subito il servizio, così non ci saranno altri addebiti.

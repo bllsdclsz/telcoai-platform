@@ -1,0 +1,11 @@
+# Acceptance thresholds: `rag eval-retrieval --gate` fails CI below these.
+# Set with a margin under the measured baseline (multilingual-e5-large, dense-only, 2026-09-29:
+# hit@1 0.872, hit@3 0.979, mrr@10 0.927, weakest language hit@3 0.958), so a change that
+# degrades retrieval (model, chunking, corpus edit) is caught but normal variance is not.
+retrieval:
+  overall:
+    hit@1: 0.80
+    hit@3: 0.95
+    mrr@10: 0.88
+  per_language:
+    hit@3: 0.90

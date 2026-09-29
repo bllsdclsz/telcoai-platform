@@ -1,0 +1,35 @@
+category: contract
+updated: 2026-05-20
+translations:
+  en:
+    title: Changing your plan
+    body: |
+      You can upgrade to a bigger plan at any time in the app under My account > Plan > Change. An upgrade takes effect immediately; the difference for the current month is charged pro rata.
+
+      A downgrade to a smaller plan takes effect at the start of the next billing month. You can change your plan once per billing month.
+
+      Changing your plan does not restart your minimum contract term.
+  de:
+    title: Abo wechseln
+    body: |
+      Sie können jederzeit in der App unter Mein Konto > Abo > Wechseln auf ein grösseres Abo upgraden. Ein Upgrade gilt sofort; die Differenz für den laufenden Monat wird anteilig verrechnet.
+
+      Ein Wechsel auf ein kleineres Abo gilt ab Beginn des nächsten Abrechnungsmonats. Sie können Ihr Abo einmal pro Abrechnungsmonat wechseln.
+
+      Ein Abowechsel startet Ihre Mindestvertragsdauer nicht neu.
+  fr:
+    title: Changer d'abonnement
+    body: |
+      Vous pouvez passer à tout moment à un abonnement supérieur dans l'app sous Mon compte > Abonnement > Changer. Un upgrade prend effet immédiatement ; la différence pour le mois en cours est facturée au prorata.
+
+      Le passage à un abonnement inférieur prend effet au début du mois de facturation suivant. Vous pouvez changer d'abonnement une fois par mois de facturation.
+
+      Changer d'abonnement ne fait pas recommencer votre durée minimale de contrat.
+  it:
+    title: Cambiare abbonamento
+    body: |
+      Puoi passare in qualsiasi momento a un abbonamento superiore nell'app in Il mio conto > Abbonamento > Cambia. L'upgrade è effettivo subito; la differenza per il mese in corso viene addebitata pro rata.
+
+      Il passaggio a un abbonamento inferiore è effettivo dall'inizio del mese di fatturazione successivo. Puoi cambiare abbonamento una volta per mese di fatturazione.
+
+      Cambiare abbonamento non fa ripartire la durata minima del contratto.

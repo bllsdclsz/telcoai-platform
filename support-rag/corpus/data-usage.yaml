@@ -1,0 +1,35 @@
+category: mobile
+updated: 2026-08-15
+translations:
+  en:
+    title: Checking your data usage
+    body: |
+      Your current data usage is shown on the home screen of the Nordalp app. You can also send an SMS with the word DATA to 444; this is free.
+
+      We notify you by SMS when you have used 80% and 100% of your data volume. After that, the speed is reduced to 128 kbit/s until the next billing month, unless you buy a Data Booster: 5 GB for CHF 9, valid for 30 days.
+
+      Unlimited plans have no data limit in Switzerland.
+  de:
+    title: Datenverbrauch prüfen
+    body: |
+      Ihr aktueller Datenverbrauch wird auf dem Startbildschirm der Nordalp-App angezeigt. Sie können auch eine SMS mit dem Wort DATA an die 444 senden; das ist kostenlos.
+
+      Wir benachrichtigen Sie per SMS, wenn Sie 80 % und 100 % Ihres Datenvolumens verbraucht haben. Danach wird die Geschwindigkeit bis zum nächsten Abrechnungsmonat auf 128 kbit/s reduziert, ausser Sie kaufen einen Daten-Booster: 5 GB für CHF 9, gültig 30 Tage.
+
+      Unlimitierte Abos haben in der Schweiz keine Datenlimite.
+  fr:
+    title: Vérifier votre consommation de données
+    body: |
+      Votre consommation de données actuelle s'affiche sur l'écran d'accueil de l'app Nordalp. Vous pouvez aussi envoyer un SMS avec le mot DATA au 444 ; c'est gratuit.
+
+      Nous vous avertissons par SMS lorsque vous avez utilisé 80 % et 100 % de votre volume de données. Ensuite, le débit est réduit à 128 kbit/s jusqu'au mois de facturation suivant, sauf si vous achetez un Data Booster : 5 Go pour CHF 9, valable 30 jours.
+
+      Les abonnements illimités n'ont pas de limite de données en Suisse.
+  it:
+    title: Controllare il consumo di dati
+    body: |
+      Il consumo di dati attuale è visibile nella schermata iniziale dell'app Nordalp. Puoi anche inviare un SMS con la parola DATA al 444; è gratuito.
+
+      Ti avvisiamo via SMS quando hai usato l'80% e il 100% del tuo volume di dati. In seguito la velocità viene ridotta a 128 kbit/s fino al mese di fatturazione successivo, a meno che tu non acquisti un Data Booster: 5 GB a CHF 9, valido 30 giorni.
+
+      Gli abbonamenti illimitati non hanno limiti di dati in Svizzera.
