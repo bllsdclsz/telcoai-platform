@@ -1,0 +1,60 @@
+name: platform-ci
+
+on:
+  push:
+    branches: [main]
+    paths: ["platform/**", ".github/workflows/platform-ci.yml"]
+  pull_request:
+    paths: ["platform/**", ".github/workflows/platform-ci.yml"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  KUBECONFORM_VERSION: v0.8.0
+
+jobs:
+  charts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.0
+      - name: Install kubeconform
+        run: |
+          curl -sSfL -o kc.tar.gz "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+          tar -xzf kc.tar.gz kubeconform && sudo mv kubeconform /usr/local/bin/
+      - name: Lint and validate every environment's rendered manifests
+        run: |
+          for values in platform/gitops/envs/*/churn-stack.yaml; do
+            echo "::group::$values"
+            helm lint --strict platform/charts/churn-stack -f "$values"
+            helm template churn platform/charts/churn-stack -f "$values" \
+              | kubeconform -strict -summary -kubernetes-version 1.35.0
+            echo "::endgroup::"
+          done
+      - name: Chart defaults refuse a bootstrap without a named approver
+        run: |
+          ! helm template churn platform/charts/churn-stack --set bootstrapModel.enabled=true 2>/dev/null
+      - name: Validate Argo CD Applications
+        run: >
+          kubeconform -strict -summary
+          -schema-location default
+          -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+          platform/gitops/apps
+
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform/terraform
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.16.4
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false
+      - run: terraform validate

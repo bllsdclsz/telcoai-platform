@@ -15,3 +15,11 @@ updates:
     groups:
       python:
         patterns: ["*"]
+
+  - package-ecosystem: terraform
+    directory: /platform/terraform
+    schedule:
+      interval: weekly
+    groups:
+      terraform:
+        patterns: ["*"]

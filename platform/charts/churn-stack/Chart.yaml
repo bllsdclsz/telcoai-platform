@@ -1,0 +1,6 @@
+apiVersion: v2
+name: churn-stack
+description: Churn prediction API with its MLflow model registry (TelcoAI platform)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

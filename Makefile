@@ -1,4 +1,4 @@
-.PHONY: install lint test check mlflow download data train features pipeline promote serve monitor simulate rag-ingest rag-eval rag-eval-gen demo-drift up serve-docker ps down
+.PHONY: install lint test check mlflow download data train features pipeline promote serve monitor simulate rag-ingest rag-eval rag-eval-gen demo-drift up serve-docker ps down cluster-up cluster-down kubeconfig platform-apply argocd-ui
 
 export MLFLOW_DISABLE_AGENT_HINT := 1
 COMPOSE := sh scripts/compose.sh
@@ -77,3 +77,26 @@ ps:
 
 down:
 	$(COMPOSE) --profile serve down
+
+# Project 3: local Kubernetes platform. Everything uses the isolated kubeconfig below; the
+# current kubectl context is never changed.
+KUBE := KUBECONFIG=$(CURDIR)/platform/.kube/telcoai.yaml
+K3D := sh platform/scripts/k3d.sh
+
+cluster-up:         ## k3d cluster "telcoai" (API on :6550, ingress on :8080) + kubeconfig
+	$(K3D) cluster create --config platform/k3d/cluster.yaml
+	$(MAKE) kubeconfig
+
+cluster-down:
+	$(K3D) cluster delete telcoai
+
+kubeconfig:         ## write platform/.kube/telcoai.yaml
+	mkdir -p platform/.kube
+	$(K3D) kubeconfig get telcoai | sed -E 's#server: https://[^:]+:[0-9]+#server: https://127.0.0.1:6550#' > platform/.kube/telcoai.yaml
+
+platform-apply:     ## Terraform: namespaces, quotas, Argo CD, root app (Argo CD then syncs platform/gitops)
+	cd platform/terraform && terraform init -input=false && terraform apply -auto-approve -input=false
+
+argocd-ui:          ## Argo CD on http://localhost:8081 (user admin, password printed first)
+	@$(KUBE) kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo
+	$(KUBE) kubectl -n argocd port-forward svc/argocd-server 8081:80

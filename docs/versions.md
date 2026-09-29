@@ -32,6 +32,17 @@ Policy: use the latest stable release of every tool, locked in `uv.lock` (Python
 | Base image                              | `python:3.14.7-slim`                                                      |                                                                                                                                                                                                             |
 | GitHub Actions                          | checkout v7.0.1, setup-uv v10.2.0, setup-buildx v4.4.1, build-push v7.4.0 | Pinned by commit SHA; Dependabot opens update PRs weekly                                                                                                                                                    |     |
 
+## Platform (Project 3)
+
+| Tool           | Version                                                        | Notes                                                                                                |
+| -------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| k3d / k3s      | 5.9.0 / `rancher/k3s:v1.35.5-k3s1`                             | Linux k3d binary is sha256-checked before it runs in the Rancher Desktop VM                          |
+| Terraform      | 1.16.4                                                         | Providers: hashicorp/kubernetes 3.2.1, hashicorp/helm 3.3.0 (lock file covers linux, windows, macOS) |
+| Helm           | 4.3.0                                                          | CI; the Helm bundled with Rancher Desktop (4.2.3) also works locally                                 |
+| Argo CD        | chart `argo-cd` 10.9.4 (Argo CD v3.5.3), `argocd-apps` 2.0.6   |                                                                                                      |
+| kubeconform    | 0.8.0                                                          | CI schema checks; CRD schemas from the datree CRDs catalog                                           |
+| GitHub Actions | login-action v4.6.0, setup-helm v5.0.1, setup-terraform v4.0.1 | Pinned by commit SHA                                                                                 |
+
 ## Upgrading
 
 ```bash

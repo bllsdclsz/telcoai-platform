@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: churn-dev
+  namespace: argocd
+  finalizers: [resources-finalizer.argocd.argoproj.io]
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/bllsdclsz/telcoai-platform.git
+    targetRevision: main
+    path: platform/charts/churn-stack
+    helm:
+      releaseName: churn
+      valueFiles: [../../gitops/envs/dev/churn-stack.yaml]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: telcoai-dev
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }

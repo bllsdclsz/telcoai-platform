@@ -1,0 +1,26 @@
+# Local Kubernetes cluster for the platform (k3d = k3s in Docker).
+# Create: make cluster-up   Delete: make cluster-down
+# Separate from any other cluster on the same Docker engine: own name, own ports, and the
+# kubeconfig is written to platform/.kube/telcoai.yaml (the default kubeconfig is not touched).
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: telcoai
+servers: 1
+agents: 1
+image: rancher/k3s:v1.35.5-k3s1
+kubeAPI:
+  hostIP: 0.0.0.0
+  hostPort: "6550"
+ports:
+  - port: 8080:80 # ingress (Traefik, bundled with k3s)
+    nodeFilters: [loadbalancer]
+  - port: 8443:443
+    nodeFilters: [loadbalancer]
+options:
+  k3d:
+    wait: true
+    timeout: 180s
+  kubeconfig:
+    updateDefaultKubeconfig: false
+    switchCurrentContext: false

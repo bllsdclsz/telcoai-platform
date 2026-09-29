@@ -38,16 +38,22 @@ Status as of 2026-09-29.
 
 ## Project 3: `platform/` (IaC, GitOps, enablement)
 
-Planned:
-
-- **Cluster:** a separate k3d cluster (the Rancher Desktop cluster belongs to another project), with Terraform for cluster add-ons.
-- **GitOps:** Argo CD with dev/test/prod overlays.
-- **Enablement:** a copier service template.
-- **SLOs:** SLO report and a postmortem.
-- **Cloud:** an optional one-weekend Azure run.
+| Item                                                                                                   | Status  | Where                                                         |
+| ------------------------------------------------------------------------------------------------------ | ------- | ------------------------------------------------------------- |
+| Separate k3d cluster (the Rancher Desktop cluster belongs to another project), isolated kubeconfig     | Done    | `platform/k3d/`, `platform/scripts/k3d.sh`, `make cluster-up` |
+| Terraform: dev/test/prod namespaces with quotas and container defaults, Argo CD, app-of-apps root      | Done    | `platform/terraform/`                                         |
+| Helm chart for the churn stack (MLflow registry + API), dev bootstraps its own model                   | Done    | `platform/charts/churn-stack/`                                |
+| Argo CD deploys dev from `main`; the churn image is published to GHCR on every merge                   | Done    | `platform/gitops/`, `.github/workflows/churn-ci.yml`          |
+| Platform CI: helm lint, kubeconform schema checks, terraform fmt/validate                              | Done    | `.github/workflows/platform-ci.yml`                           |
+| Test and prod environments; promotion = a PR that pins an immutable image tag; rollback = `git revert` | Next    |                                                               |
+| Support assistant chart (Qdrant, Ollama)                                                               | Planned |                                                               |
+| Copier service template                                                                                | Planned |                                                               |
+| SLO report, runbooks, a postmortem                                                                     | Planned |                                                               |
+| Optional one-weekend Azure run                                                                         | Planned |                                                               |
 
 ## Local environment notes
 
 - **Docker:** runs on Rancher Desktop, shared with another project. `scripts/compose.sh` falls back to `rdctl shell` when the Windows Docker pipe is unavailable.
-- **Ports used:** 5000 (MLflow), 6379 (Redis), 6566 (Feast), 8000 (API), 9090 (Prometheus), 3000 (Grafana).
+- **Ports used:** 5000 (MLflow), 6379 (Redis), 6566 (Feast), 8000 (API), 9090 (Prometheus), 3000 (Grafana); k3d: 6550 (Kubernetes API), 8080/8443 (ingress), 8081 (Argo CD UI port-forward).
+- **Kubernetes:** k3d runs inside the Rancher Desktop VM when the Windows Docker pipe is unavailable (`platform/scripts/k3d.sh`). All commands use `platform/.kube/telcoai.yaml`; the current kubectl context is never changed.
 - **Resuming after a restart:** `make up data train promote features serve-docker`. Volumes keep MLflow runs and the registry, so `train promote` is only needed on a fresh volume.

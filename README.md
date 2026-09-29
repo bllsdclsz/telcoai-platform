@@ -2,11 +2,11 @@
 
 An end-to-end ML and GenAI platform for a telecom operator: it covers taking models from experimentation to production, with the engineering standards a central ML platform team would provide to product teams.
 
-| Component          | What it shows                                                                                                                             | Status      |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| [`churn/`](churn/) | Churn prediction: validated data, reproducible training, MLflow registry with dev→staging→prod aliases, quality gate, FastAPI serving, CI | In progress |
-| [`support-rag/`](support-rag/) | Multilingual (DE/FR/IT/EN) customer-support RAG assistant: benchmarked multilingual retrieval (Qdrant), evaluation gate in CI; next: local LLM generation, guardrails, audit logging | In progress |
-| `platform/`        | Terraform, Kubernetes, Argo CD GitOps, monitoring/SLOs, service template, runbooks                                                        | Planned     |
+| Component                      | What it shows                                                                                                                                                                             | Status      |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| [`churn/`](churn/)             | Churn prediction: validated data, reproducible training, MLflow registry with dev→staging→prod aliases, quality gate, model cards, FastAPI serving, Feast, drift-triggered retraining, CI | Done        |
+| [`support-rag/`](support-rag/) | Multilingual (DE/FR/IT/EN) customer-support RAG assistant: cited answers from a local LLM, guardrails, evaluation gates, tracing and audit log, human approval for actions                | Done        |
+| [`platform/`](platform/)       | Local Kubernetes (k3d), Terraform, Argo CD GitOps with dev/test/prod namespaces and budgets, Helm chart for the churn stack; next: more services, promotion by PR, service template, SLOs | In progress |
 
 ## Quick start
 
@@ -27,6 +27,13 @@ make up data train features
 make promote APPROVED_BY="Your Name" FAIRNESS_REVIEWED=1   # after reading the model card in MLflow
 make serve-docker
 make demo-drift       # simulated drift -> automatic retrain to staging
+```
+
+On Kubernetes, deployed by Argo CD from this repository ([platform/README.md](platform/README.md)):
+
+```bash
+make cluster-up platform-apply   # k3d cluster, namespaces with budgets, Argo CD; the dev stack syncs itself
+make argocd-ui                   # http://localhost:8081
 ```
 
 ## Engineering standards
