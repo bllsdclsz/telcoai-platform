@@ -1,6 +1,6 @@
 # Roadmap
 
-Status as of 2026-09-26.
+Status as of 2026-09-29.
 
 ## Project 1: `churn/` (Churn prediction MLOps pipeline)
 
@@ -16,8 +16,9 @@ Status as of 2026-09-26.
 | Prometheus metrics, SLO alert rules, Grafana dashboard, runbook                                 | Done    | `monitoring/`, `docs/runbooks/`                          |
 | Evidently drift detection → automatic retrain to staging                                        | Done    | `drift.py`, `flows.py`                                   |
 | Feast feature store (offline parquet, online Redis), `/predict/by-id`, parity tests             | Done    | `feature_store.py`, `feature_repo/`, `serve/features.py` |
-| **Model card** generated per registered version (data, metrics, fairness slices, limitations)   | Next    |                                                          |
-| **Optuna tuning** in the training flow                                                          | Next    |                                                          |
+| Model card per registered version (intended use, lineage, per-group metrics, fairness gaps, blind spots) | Done | `model_card.py` |
+| Prod approval gate: model card + named approver + fairness acknowledgement, recorded on the version | Done | `registry.py` |
+| Optuna tuning (CV on the training split, nested MLflow runs) | Done | `tune.py` |
 | Batch scoring job (nightly retention list)                                                      | Planned |                                                          |
 | Slimmer serving image (currently 944 MB, mostly MLflow)                                         | Planned |                                                          |
 
