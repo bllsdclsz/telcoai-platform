@@ -47,8 +47,8 @@ Status as of 2026-09-29.
 | Platform CI: helm lint, kubeconform schema checks, terraform fmt/validate                              | Done    | `.github/workflows/platform-ci.yml`                           |
 | Test and prod: ApplicationSet (one app per env folder), dev/test/prod serve @dev/@staging/@prod of one registry | Done | `platform/gitops/` |
 | Image promotion by PR (immutable `sha-` tags, prod only after test, checked in CI); rollback = revert | Done | `make promote-image`, `platform/scripts/check-promotions.sh` |
-| API starts unready and polls the registry instead of exiting when its alias has no model | Next | `churn/src/churn/serve/` |
-| Support assistant chart (Qdrant, Ollama)                                                               | Planned |                                                               |
+| API follows its alias: starts unready (`/health` 503, `/livez` for liveness), picks up promotions and rollbacks without a restart | Done | `churn/src/churn/serve/app.py` |
+| Support assistant chart (Qdrant, Ollama)                                                               | Next |                                                               |
 | Copier service template                                                                                | Planned |                                                               |
 | SLO report, runbooks, a postmortem                                                                     | Planned |                                                               |
 | Optional one-weekend Azure run                                                                         | Planned |                                                               |

@@ -1,5 +1,12 @@
-"""Real-time churn scoring API. Serves the registered model version behind an alias."""
+"""Real-time churn scoring API. Serves the registered model version behind an alias.
 
+The API follows its alias: it starts even when no model is registered there yet (not ready,
+503), and when a promotion or rollback moves the alias, it swaps to the new version without a
+restart.
+"""
+
+import asyncio
+import logging
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -10,6 +17,7 @@ import mlflow
 import mlflow.sklearn
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 from mlflow import MlflowClient
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, Field, ValidationError
@@ -29,6 +37,7 @@ from churn.serve.features import FeatureServerClient
 from churn.serve.monitoring import Metrics, PredictionLog
 
 DECISION_THRESHOLD = 0.5
+log = logging.getLogger(__name__)
 
 
 class CustomerFeatures(BaseModel):
@@ -86,19 +95,31 @@ class LoadedModel:
     version: str
 
 
-def load_registered_model(settings: Settings | None = None) -> LoadedModel:
+def registered_version(settings: Settings | None = None) -> str:
+    """Version the serving alias points to right now (cheap: one registry call)."""
     settings = settings or Settings()
     mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
     name, alias = settings.registered_model_name, settings.serving_alias
-    version = MlflowClient().get_model_version_by_alias(name, alias).version
-    return LoadedModel(mlflow.sklearn.load_model(f"models:/{name}@{alias}"), str(version))
+    return str(MlflowClient().get_model_version_by_alias(name, alias).version)
+
+
+def load_registered_model(settings: Settings | None = None) -> LoadedModel:
+    settings = settings or Settings()
+    version = registered_version(settings)
+    # Load by version, not alias: the alias may move between the two calls.
+    model_uri = f"models:/{settings.registered_model_name}/{version}"
+    return LoadedModel(mlflow.sklearn.load_model(model_uri), version)
 
 
 def create_app(
     loader: Callable[[], LoadedModel] = load_registered_model,
     settings: Settings | None = None,
     feature_client: FeatureServerClient | None = None,
+    version_probe: Callable[[], str] | None = None,
 ) -> FastAPI:
+    """``loader`` loads the model behind the serving alias. ``version_probe`` (optional) returns
+    the version the alias points to; when it differs from the served one, the model is reloaded.
+    """
     settings = settings or Settings()
     if feature_client is None and settings.feature_server_url:
         feature_client = FeatureServerClient(settings.feature_server_url)
@@ -107,11 +128,43 @@ def create_app(
         PredictionLog(settings.prediction_log_dir) if settings.prediction_log_dir else None
     )
 
+    alias = settings.serving_alias
+
+    def serve(app: FastAPI, loaded: LoadedModel) -> None:
+        previous: LoadedModel | None = app.state.loaded
+        app.state.loaded = loaded  # one reference swap: requests see the old or the new model
+        if previous is not None:
+            metrics.model_info.remove(previous.version, alias)
+        metrics.model_info.labels(loaded.version, alias).set(1)
+        log.warning("serving %s v%s", alias, loaded.version)
+
+    async def follow_alias(app: FastAPI) -> None:
+        while True:
+            await asyncio.sleep(settings.model_refresh_seconds)
+            try:
+                current: LoadedModel | None = app.state.loaded
+                moved = current is None or (
+                    version_probe is not None
+                    and await asyncio.to_thread(version_probe) != current.version
+                )
+                if moved:
+                    serve(app, await asyncio.to_thread(loader))
+            except Exception as exc:  # registry down, alias unset: keep serving what we have
+                log.warning("model check for @%s failed: %s", alias, exc)
+
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        app.state.loaded = loader()
-        metrics.model_info.labels(app.state.loaded.version, settings.serving_alias).set(1)
+        app.state.loaded = None
+        try:
+            serve(app, loader())
+        except Exception as exc:
+            log.warning("no model behind @%s yet, not ready: %s", alias, exc)
+        task = None
+        if settings.model_refresh_seconds > 0:
+            task = asyncio.create_task(follow_alias(app))
         yield
+        if task is not None:
+            task.cancel()
 
     app = FastAPI(title="Telco Churn API", version="0.1.0", lifespan=lifespan)
 
@@ -131,9 +184,24 @@ def create_app(
             metrics.latency.labels(route, request.method).observe(time.perf_counter() - start)
             metrics.requests.labels(route, request.method, str(status)).inc()
 
-    @app.get("/health")
-    def health(request: Request) -> dict[str, str]:
-        return {"status": "ok", "model_version": request.app.state.loaded.version}
+    def current_model(request: Request) -> LoadedModel:
+        loaded: LoadedModel | None = request.app.state.loaded
+        if loaded is None:
+            raise HTTPException(503, f"no model behind @{alias} yet")
+        return loaded
+
+    @app.get("/livez", include_in_schema=False)
+    def livez() -> dict[str, str]:
+        """Liveness: the process answers. Never depends on the registry."""
+        return {"status": "alive"}
+
+    @app.get("/health", responses={503: {"description": "No model loaded yet"}})
+    def health(request: Request) -> Response:
+        """Readiness: ready once a model is loaded."""
+        loaded: LoadedModel | None = request.app.state.loaded
+        if loaded is None:
+            return JSONResponse({"status": "waiting_for_model", "alias": alias}, status_code=503)
+        return JSONResponse({"status": "ok", "model_version": loaded.version})
 
     @app.get("/metrics", include_in_schema=False)
     def prometheus_metrics() -> Response:
@@ -150,9 +218,9 @@ def create_app(
             for p in proba
         ]
 
-    @app.post("/predict")
+    @app.post("/predict", responses={503: {"description": "No model loaded yet"}})
     def predict(body: PredictRequest, request: Request) -> PredictResponse:
-        loaded: LoadedModel = request.app.state.loaded
+        loaded = current_model(request)
         return PredictResponse(
             model_version=loaded.version, predictions=score(body.customers, loaded)
         )
@@ -161,11 +229,12 @@ def create_app(
         "/predict/by-id",
         responses={
             404: {"description": "Unknown customer IDs"},
-            503: {"description": "No features"},
+            503: {"description": "No features, or no model loaded yet"},
         },
     )
     def predict_by_id(body: PredictByIdRequest, request: Request) -> PredictByIdResponse:
         """Score customers by ID with features from the online feature store."""
+        loaded = current_model(request)
         if feature_client is None:
             raise HTTPException(503, "feature store not configured (CHURN_FEATURE_SERVER_URL)")
         ids = list(dict.fromkeys(body.customer_ids))  # de-duplicate, keep order
@@ -180,7 +249,6 @@ def create_app(
         except ValidationError as exc:
             raise HTTPException(502, f"invalid features from feature store: {exc}") from exc
 
-        loaded: LoadedModel = request.app.state.loaded
         return PredictByIdResponse(
             model_version=loaded.version,
             predictions=[
@@ -192,4 +260,4 @@ def create_app(
     return app
 
 
-app = create_app()
+app = create_app(version_probe=registered_version)
