@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "churn.name" . }}-mlflow
+  labels: {{- include "churn.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: {{ .Values.mlflow.storage }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "churn.name" . }}-mlflow
+  labels:
+    {{- include "churn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mlflow
+spec:
+  replicas: 1
+  strategy: { type: Recreate } # single writer on a ReadWriteOnce volume
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: mlflow
+  template:
+    metadata:
+      labels:
+        {{- include "churn.labels" . | nindent 8 }}
+        app.kubernetes.io/component: mlflow
+    spec:
+      containers:
+        - name: mlflow
+          image: {{ .Values.mlflow.image }}
+          args:
+            - mlflow
+            - server
+            - --host=0.0.0.0
+            - --port=5000
+            - --backend-store-uri=sqlite:////mlflow/mlflow.db
+            - --artifacts-destination=/mlflow/artifacts
+            - --allowed-hosts={{ include "churn.name" . }}-mlflow,{{ include "churn.name" . }}-mlflow:5000,localhost,localhost:5000,127.0.0.1:5000
+            - --workers={{ .Values.mlflow.workers }}
+          env:
+            # The GenAI job runner (scorers, judges) starts seven more python processes, about
+            # 1.4 GiB. A model registry does not use it.
+            - { name: MLFLOW_SERVER_ENABLE_JOB_EXECUTION, value: "false" }
+          ports: [{ name: http, containerPort: 5000 }]
+          # Startup (DB migrations, workers) can take a minute under a CPU limit: liveness only
+          # starts once the startup probe passed, so a slow start is never killed as a hang.
+          startupProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 20
+            timeoutSeconds: 5
+          resources: {{- toYaml .Values.mlflow.resources | nindent 12 }}
+          volumeMounts: [{ name: data, mountPath: /mlflow }]
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "churn.name" . }}-mlflow
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "churn.name" . }}-mlflow
+  labels: {{- include "churn.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: mlflow
+  ports: [{ name: http, port: 5000, targetPort: http }]

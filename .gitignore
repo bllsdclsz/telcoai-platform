@@ -13,3 +13,4 @@ data/reports/
 data/feast/
 data/qdrant/
 data/*.db
+platform/.kube/

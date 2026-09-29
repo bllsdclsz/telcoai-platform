@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "churn.name" . }}-api
+  labels:
+    {{- include "churn.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  replicas: {{ .Values.api.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        {{- include "churn.labels" . | nindent 8 }}
+        app.kubernetes.io/component: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: /metrics
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - { name: CHURN_MLFLOW_TRACKING_URI, value: {{ include "churn.mlflowUrl" . | quote }} }
+            - { name: CHURN_SERVING_ALIAS, value: {{ .Values.api.servingAlias | quote }} }
+            - { name: CHURN_PREDICTION_LOG_DIR, value: /var/lib/churn/predictions }
+            - { name: HOME, value: /tmp }
+          ports: [{ name: http, containerPort: 8000 }]
+          # Loads models:/telco-churn@<alias> at startup: fails until a model is promoted.
+          startupProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 20
+            timeoutSeconds: 5
+          resources: {{- toYaml .Values.api.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: predictions, mountPath: /var/lib/churn/predictions }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+        - { name: predictions, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "churn.name" . }}-api
+  labels: {{- include "churn.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: api
+  ports: [{ name: http, port: 8000, targetPort: http }]
+{{- if .Values.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "churn.name" . }}-api
+  labels: {{- include "churn.labels" . | nindent 4 }}
+spec:
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "churn.name" . }}-api
+                port: { name: http }
+{{- end }}
