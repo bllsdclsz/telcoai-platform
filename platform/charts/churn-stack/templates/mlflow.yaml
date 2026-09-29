@@ -42,8 +42,8 @@ spec:
             - --allowed-hosts={{ include "churn.name" . }}-mlflow,{{ include "churn.name" . }}-mlflow:5000,localhost,localhost:5000,127.0.0.1:5000
             - --workers={{ .Values.mlflow.workers }}
           env:
-            # The GenAI job runner (scorers, judges) starts seven more python processes, about
-            # 1.4 GiB. A model registry does not use it.
+            # The GenAI job runner (scorers, judges) starts 8 more Python processes: 1.8 GiB in
+            # total instead of 0.6 GiB. A model registry does not use it.
             - { name: MLFLOW_SERVER_ENABLE_JOB_EXECUTION, value: "false" }
           ports: [{ name: http, containerPort: 5000 }]
           # Startup (DB migrations, workers) can take a minute under a CPU limit: liveness only

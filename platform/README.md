@@ -54,5 +54,5 @@ curl localhost:18000/health     # {"status":"ok","model_version":"1"}
 
 ## Found while testing on the cluster
 
-- **MLflow was OOM-killed at 1.5 GiB.** MLflow 3.x starts a GenAI job runner with seven more Python processes (about 1.4 GiB) next to the server. The kernel log showed the kills. The container status only said `Error`, exit 137. A model registry does not need the runner: `MLFLOW_SERVER_ENABLE_JOB_EXECUTION=false` brings it under 1 GiB.
+- **MLflow was OOM-killed at 1.5 GiB.** MLflow 3.x starts a GenAI job runner next to the server: 8 more Python processes, 1.8 GiB in total instead of 0.6 GiB (measured with `docker stats`). The kernel log showed the kills; the container status only said `Error`, exit 137. A model registry does not need the runner, so `MLFLOW_SERVER_ENABLE_JOB_EXECUTION=false`.
 - **Default probes killed a healthy MLflow.** The 1 s default timeout is too short for a Python server starting under a CPU limit. A `startupProbe` covers the slow start, and the liveness probe only starts after it passes.
