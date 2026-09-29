@@ -29,3 +29,19 @@ class Settings(BaseSettings):
 
     chunk_max_words: int = 120
     top_k: int = 5
+
+    # Generation. Any LiteLLM model string works, e.g. "anthropic/<model>" with its API key.
+    prompts_dir: Path = PACKAGE_DIR / "prompts"
+    prompt_version: int | None = None  # None -> latest version
+    # Chosen by comparison (support-rag/README.md): newest model with clean, correct answers.
+    llm_model: str = "ollama_chat/granite4.2:8b"
+    llm_api_base: str | None = "http://127.0.0.1:11434"
+    temperature: float = 0.0
+    reasoning_effort: str | None = "none"  # thinking off; see llm.LiteLLMChat
+    max_tokens: int = 400
+    answer_top_k: int = 4
+    # First, cheap scope filter: below this best-match score the question is answered with the
+    # fallback, without an LLM call. Set just under the lowest in-scope score (0.788 on the golden
+    # set), so no real question is refused; it stops 12/24 off-topic questions. The rest are left
+    # to the model's NO_ANSWER instruction (second layer). See support-rag/README.md.
+    min_retrieval_score: float = 0.78

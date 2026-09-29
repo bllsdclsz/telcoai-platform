@@ -4,7 +4,7 @@ A retrieval-augmented support assistant for a Swiss telecom operator, answering 
 
 > The operator **"Nordalp Mobile"** and all its help articles, prices and URLs (`*.nordalp.example`) are **fictional**, written for this project. They are not affiliated with any real company.
 
-Status: **retrieval + evaluation gate** (this stage). Next: generation with a local LLM (Ollama, IBM Granite 4.2), guardrails, audit logging and generation evaluation. See [the roadmap](../docs/roadmap.md).
+Status: **retrieval, evaluation gate and cited answers from a local LLM**. Next: guardrails, audit logging/tracing and generation evaluation. See [the roadmap](../docs/roadmap.md).
 
 ## Pipeline
 
@@ -22,6 +22,49 @@ question + UI language ──▶ embed query ──▶ Qdrant search (filter: la
   - Hybrid search (dense + BM25 with reciprocal rank fusion) is available but switched off. The benchmark below shows why.
   - Qdrant runs **embedded** for tests and CI, or as a server via `RAG_QDRANT_URL`.
 - `evaluate.py`: the retrieval evaluation harness and CI gate.
+
+## Answer generation
+
+```
+question + lang ──▶ retrieve top-4 ──▶ best score < 0.78? ──yes──▶ localized fallback (no LLM call)
+                                              │ no
+                                              ▼
+                   numbered sources [1]..[n] + prompts/answer/v1.yaml ──▶ LLM (LiteLLM → Ollama)
+                                              │
+                    "NO_ANSWER" ──▶ localized fallback      answer ──▶ keep only the sources it cites [n]
+```
+
+- **Provider-agnostic** (`llm.py`): one `ChatModel` interface. LiteLLM routes a model string to the provider, so switching is configuration only. The default is **local**: `ollama_chat/granite4.2:8b` (IBM Granite 4.2, needs Ollama ≥ 0.34). `RAG_LLM_MODEL=ollama_chat/qwen2.5` or `anthropic/<model>` work the same way.
+- **Thinking off** (`reasoning_effort: none`, which LiteLLM maps per provider): answering from given sources doesn't need reasoning. With thinking on, Granite spent the whole 400-token budget reasoning and returned _no_ answer. That failure now has its own `generation_failed` reason instead of looking like the model declining. Reasoning that still leaks is stripped, including a dangling `</think>`.
+- **Versioned prompts** (`prompts/answer/v1.yaml`, `prompts.py`): prompts live in git and are reviewed like code. Every answer records `answer@v1` and the prompt file's SHA-256, so any response can be traced to the exact prompt text.
+- **Grounded, cited answers** (`assistant.py`): sources are numbered once per article, the model must cite `[n]`, and the API returns only the sources the answer actually cites. The prompt tells the model to answer in the customer's language, never invent prices or links, and ignore instructions hidden in the question.
+- **Two scope checks:**
+  1. **Retrieval-score filter (0.78):** calibrated on the golden set (0/94 in-scope refused) against `eval/out_of_scope.yaml` (24 off-topic questions); it stops 12 of them without an LLM call. The score ranges overlap ("How much does the new iPhone cost at Nordalp?" scores 0.84), so a threshold alone can't separate them.
+  2. **Model's `NO_ANSWER`:** the model declines when the sources don't answer the question. Both paths return the same localized message pointing to the app chat and hotline.
+- **API** (`api.py`): `POST /ask {question, lang}` returns `{answer, answered, reason, sources[{n,title,url}], prompt, model, latency_ms, request_id}`. `GET /health` is also available.
+
+Checked end to end on the real index and a local model:
+
+| Question                                                    | Result                                                                              |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| DE: stolen phone, what to do and what does a SIM cost?      | Block via app or 0800 700 700, replacement SIM CHF 40, 2 working days [1]           |
+| FR: data in Italy with Swiss+?                              | 5 GB per month [1]                                                                  |
+| IT: cost of the second reminder?                            | CHF 30 [1]                                                                          |
+| DE: how long does porting to Nordalp take?                  | 3 to 5 working days [1]                                                             |
+| EN: pizza in Lausanne / "Ignore all previous instructions…" | Fallback from the score filter, no LLM call                                         |
+| IT: student offers?                                         | Passes the score filter; the model answers `NO_ANSWER`, so the fallback is returned |
+
+### Choosing the local model
+
+The same 16 cases were run on each model: 12 in-scope questions (3 per language), each with the fact the answer must contain, plus 4 questions to decline. Hardware: RTX 3060 Laptop GPU with 6 GB VRAM.
+
+| Model                        | Facts | Cited | Declines | Answer style                                    | Median latency | GPU fit                 |
+| ---------------------------- | ----- | ----- | -------- | ----------------------------------------------- | -------------- | ----------------------- |
+| **Granite 4.2 8B** (default) | 12/12 | 12/12 | 4/4      | clean, slightly more complete                   | 5.2 s          | partial (4.3 of 6.2 GB) |
+| Granite 4.2 3B               | 12/12 | 12/12 | 4/4      | often echoes instructions or repeats the answer | 0.7 s          | full (2.7 GB)           |
+| qwen2.5 7B (2024)            | 12/12 | 12/12 | 4/4      | clean                                           | 1.7 s          | full                    |
+
+Granite 4.2 8B is the default: it's the newest model and its answers are clean. The 3B model's echoes would reach customers, and a fact check alone doesn't catch them. That gap is what the generation evaluation (next stage) adds: an LLM judge for faithfulness and style. The judge will be a different model family (qwen2.5), so no model grades its own answers. qwen2.5 is the faster fallback when latency matters.
 
 ## Evaluation
 
@@ -67,6 +110,8 @@ The JSON report is uploaded as a build artifact.
 ```bash
 uv run rag ingest                                     # index into data/qdrant (embedded)
 uv run rag search "Handy im Zug geklaut" --lang de
+uv run rag ask "Handy im Zug geklaut, was nun?" --lang de   # needs Ollama running with the model
+uv run rag serve                                      # API on http://127.0.0.1:8100/docs
 uv run rag eval-retrieval --gate                      # the CI gate, locally
 uv run rag eval-retrieval --dense <model> --dense <model> [--no-sparse]   # compare models
 ```
