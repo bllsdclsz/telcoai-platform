@@ -1,7 +1,7 @@
 # Test runs a pinned image (changed only by a promotion PR: make promote-image ENV=test) and the
 # model a person promoted to @staging.
 image:
-  tag: sha-1da36496f7994a4f2a08637c40f78853621d438f
+  tag: sha-92ca8e565e48028b9bba86c560c0185ac6ef06e0
 
 api:
   servingAlias: staging
