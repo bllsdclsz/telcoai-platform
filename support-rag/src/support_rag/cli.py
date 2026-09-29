@@ -48,6 +48,15 @@ def main(argv: list[str] | None = None) -> None:
     sev.add_argument("--gate", action="store_true", help="exit 1 if below eval/thresholds.yaml")
     sev.add_argument("--rules-only", action="store_true", help="skip the learned classifier")
     sub.add_parser("train-injection", help="train the prompt-injection classifier artifact")
+    cal = sub.add_parser("calibrate-judge", help="score the LLM judge on known answers")
+    cal.add_argument("--judge", help="judge model (default: configured)")
+    gen = sub.add_parser("eval-generation", help="answer quality: facts, language, LLM judge")
+    gen.add_argument("--model", help="generator model (default: configured)")
+    gen.add_argument("--prompt-version", type=int, help="answer prompt version (default: latest)")
+    gen.add_argument("--judge", help="judge model (default: configured)")
+    gen.add_argument("--no-judge", action="store_true", help="deterministic checks only")
+    gen.add_argument("--gate", action="store_true", help="exit 1 if below eval/thresholds.yaml")
+    gen.add_argument("--report", help="write the JSON report to this file")
     args = parser.parse_args(argv)
 
     settings = Settings()
@@ -96,6 +105,89 @@ def main(argv: list[str] | None = None) -> None:
             from support_rag.api import create_app
 
             uvicorn.run(create_app(), host=args.host, port=args.port)
+        case "calibrate-judge":
+            from support_rag.generation_eval import Judge, calibrate_judge
+            from support_rag.llm import LiteLLMChat
+            from support_rag.prompts import load_prompt
+
+            judge_llm = LiteLLMChat(
+                args.judge or settings.judge_model,
+                api_base=settings.llm_api_base,
+                reasoning_effort=settings.reasoning_effort,
+            )
+            cal_report = calibrate_judge(
+                settings, Judge(judge_llm, load_prompt(settings.prompts_dir, "judge"))
+            )
+            acc = "  ".join(f"{c} {v:.0%}" for c, v in cal_report.accuracy.items())
+            print(
+                f"judge {cal_report.judge_model} ({cal_report.judge_prompt}) + style check "
+                f"on {cal_report.n} known answers: {acc}"
+                f"  (parse errors: {cal_report.parse_errors})"
+            )
+            for d in cal_report.disagreements:
+                print(
+                    f"  {d['id']:22} {d['criterion']:9} expected {d['expected']!s:5} "
+                    f"got {d['predicted']!s:5} | {d['reason'][:90]}"
+                )
+        case "eval-generation":
+            from support_rag.api import build_assistant
+            from support_rag.generation_eval import (
+                Judge,
+                check_generation_thresholds,
+                log_to_mlflow,
+                run_generation_eval,
+            )
+            from support_rag.llm import LiteLLMChat
+            from support_rag.prompts import load_prompt
+
+            if args.model:
+                settings = settings.model_copy(update={"llm_model": args.model})
+            if args.prompt_version:
+                settings = settings.model_copy(update={"prompt_version": args.prompt_version})
+            judge = None
+            if not args.no_judge:
+                judge_llm = LiteLLMChat(
+                    args.judge or settings.judge_model,
+                    api_base=settings.llm_api_base,
+                    reasoning_effort=settings.reasoning_effort,
+                )
+                judge = Judge(judge_llm, load_prompt(settings.prompts_dir, "judge"))
+            gen_report = run_generation_eval(settings, build_assistant(settings), judge)
+            print(f"{gen_report.model} | {gen_report.prompt} | judge {gen_report.judge_model}")
+            for k, v in gen_report.metrics.items():
+                print(f"  {k:20} {v:.3f}")
+            for c in gen_report.cases:
+                problems = []
+                if c.expect == "answer" and c.reason != "answered":
+                    problems.append(f"not answered ({c.reason})")
+                if c.expect == "decline" and c.reason == "answered":
+                    problems.append("answered but should decline")
+                if c.facts_ok is False:
+                    problems.append("fact missing")
+                problems += [f"style: {issue}" for issue in c.style_issues]
+                if c.verdict:
+                    problems += [
+                        f"judge: not {k}" for k in ("faithful", "relevant") if c.verdict[k] is False
+                    ]
+                if problems:
+                    print(f"  ! [{c.lang}] {c.q[:50]:50} {', '.join(problems)} | {c.answer[:70]!r}")
+            if args.report:
+                with open(args.report, "w", encoding="utf-8") as f:
+                    json.dump(asdict(gen_report), f, ensure_ascii=False, indent=1)
+            if settings.eval_mlflow_uri:
+                run_id = log_to_mlflow(
+                    gen_report, settings.eval_mlflow_uri, settings.eval_experiment
+                )
+                print(f"logged to MLflow run {run_id}")
+            if args.gate:
+                thresholds = yaml.safe_load(
+                    (settings.eval_dir / "thresholds.yaml").read_text(encoding="utf-8")
+                )["generation"]
+                violations = check_generation_thresholds(gen_report, thresholds)
+                if violations:
+                    print("GENERATION GATE FAILED:\n  " + "\n  ".join(violations))
+                    sys.exit(1)
+                print("generation gate passed")
         case "train-injection":
             from support_rag.embeddings import FastEmbedDense
             from support_rag.injection_model import save, train_injection_classifier

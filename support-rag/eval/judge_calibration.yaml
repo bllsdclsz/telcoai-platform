@@ -1,0 +1,78 @@
+# Judge calibration ("evaluate the evaluator"): `rag calibrate-judge`.
+# Each item: a question, the help-center article the answer cites as source [1], an answer, and
+# the correct verdict on each criterion:
+#   faithful - every claim is supported by the source (no invented facts);
+#   relevant - the answer addresses what was asked;
+#   clean    - reads as a direct customer answer in the question's language: no echoed
+#              instructions, no meta commentary, no duplicated text.
+
+- id: good-en
+  source: sim-lost-stolen.en
+  q: What does a replacement SIM cost?
+  answer: A replacement SIM card costs CHF 40 and arrives by post within 2 working days [1].
+  labels: { faithful: true, relevant: true, clean: true }
+- id: wrong-price
+  source: sim-lost-stolen.en
+  q: What does a replacement SIM cost?
+  answer: A replacement SIM card costs CHF 25 [1].
+  labels: { faithful: false, relevant: true, clean: true }
+- id: invented-claim
+  source: sim-lost-stolen.en
+  q: What does a replacement SIM cost?
+  answer: A replacement SIM costs CHF 40 [1]. It is always delivered the same day by courier [1].
+  labels: { faithful: false, relevant: true, clean: true }
+- id: echoed-instructions
+  source: sim-lost-stolen.en
+  q: What does a replacement SIM cost?
+  answer: "A replacement SIM card costs CHF 40 [1].\n\nAnswer in English, concise, with citations."
+  labels: { faithful: true, relevant: true, clean: false }
+- id: meta-commentary
+  source: sim-lost-stolen.en
+  q: What does a replacement SIM cost?
+  answer: As an AI assistant following the rules I was given, and using only the numbered sources, my answer is that a replacement SIM costs CHF 40 [1].
+  labels: { faithful: true, relevant: true, clean: false }
+- id: wrong-language
+  source: late-payment.de
+  q: Was kostet die zweite Mahnung?
+  answer: The second reminder costs a fee of CHF 30 [1].
+  labels: { faithful: true, relevant: true, clean: false }
+- id: off-question
+  source: number-porting.en
+  q: How long does it take to port my number to Nordalp?
+  answer: Porting your number to Nordalp is free of charge [1].
+  labels: { faithful: true, relevant: false, clean: true }
+- id: good-fr
+  source: roaming-eu.fr
+  q: Combien de données ai-je en Italie avec Swiss+ ?
+  answer: Avec Swiss+, vous disposez de 5 Go de données mobiles par mois dans les pays de l'UE/EEE, dont l'Italie [1].
+  labels: { faithful: true, relevant: true, clean: true }
+- id: good-it
+  source: late-payment.it
+  q: Quanto costa il secondo sollecito?
+  answer: Il secondo sollecito comporta una tassa di CHF 30 [1].
+  labels: { faithful: true, relevant: true, clean: true }
+- id: contradiction-it
+  source: late-payment.it
+  q: Quanto costa il secondo sollecito?
+  answer: Il secondo sollecito è gratuito [1].
+  labels: { faithful: false, relevant: true, clean: true }
+- id: good-de
+  source: tv-replay.de
+  q: Wie lange kann ich Sendungen nachschauen?
+  answer: Mit Replay können Sie Sendungen bis 7 Tage nach der Ausstrahlung auf über 250 Sendern schauen [1].
+  labels: { faithful: true, relevant: true, clean: true }
+- id: duplicated-de
+  source: tv-replay.de
+  q: Wie lange kann ich Sendungen nachschauen?
+  answer: "Sendungen können bis 7 Tage nachgeschaut werden [1].\n\nAnswer: Sendungen können bis 7 Tage nachgeschaut werden [1]."
+  labels: { faithful: true, relevant: true, clean: false }
+- id: wrong-volume
+  source: roaming-worldwide.en
+  q: What does the Zone 2 travel pack include?
+  answer: The Zone 2 travel pack includes 5 GB for 30 days and costs CHF 29 [1].
+  labels: { faithful: false, relevant: true, clean: true }
+- id: off-question-2
+  source: plan-change.en
+  q: When does a downgrade to a smaller plan take effect?
+  answer: You can upgrade to a bigger plan at any time in the app under My account > Plan > Change [1].
+  labels: { faithful: true, relevant: false, clean: true }
