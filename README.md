@@ -37,4 +37,4 @@ make demo-drift       # simulated drift -> automatic retrain to staging
 - **Governance:** every registered version ships with a generated model card (intended use, data lineage, per-group performance, fairness gaps, blind spots). Promotion to prod needs a named approver and an explicit fairness acknowledgement when the card flags one; both are recorded on the version.
 - **CI on every change:** ruff, mypy, pytest, then a container build.
 
-Tool versions and upgrade notes: [docs/versions.md](docs/versions.md).
+Progress and next steps: [docs/roadmap.md](docs/roadmap.md). Tool versions: [docs/versions.md](docs/versions.md). Runbooks: [docs/runbooks/](docs/runbooks/).
