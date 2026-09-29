@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from support_rag.assistant import Answer, Assistant
 from support_rag.config import Language, Settings
+from support_rag.injection_model import InjectionClassifier
 
 
 class AskRequest(BaseModel):
@@ -42,6 +43,14 @@ def build_assistant(settings: Settings | None = None) -> Assistant:
 
     s = settings or Settings()
     sparse = FastEmbedSparse(s.sparse_model) if s.sparse_model else None
+    classifier = None
+    if s.injection_classifier and s.injection_classifier.exists():
+        classifier = InjectionClassifier.load(s.injection_classifier)
+        if classifier.embedding_model != s.dense_model:
+            raise ValueError(
+                f"injection classifier was trained on {classifier.embedding_model}, "
+                f"but retrieval uses {s.dense_model}: retrain with `rag train-injection`"
+            )
     return Assistant(
         Retriever(connect(s), s.collection, FastEmbedDense(s.dense_model), sparse),
         LiteLLMChat(s.llm_model, api_base=s.llm_api_base, reasoning_effort=s.reasoning_effort),
@@ -50,6 +59,7 @@ def build_assistant(settings: Settings | None = None) -> Assistant:
         min_score=s.min_retrieval_score,
         temperature=s.temperature,
         max_tokens=s.max_tokens,
+        injection_classifier=classifier,
     )
 
 

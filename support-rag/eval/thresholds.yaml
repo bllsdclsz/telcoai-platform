@@ -9,3 +9,14 @@ retrieval:
     mrr@10: 0.88
   per_language:
     hit@3: 0.90
+
+# Input guardrails: `rag eval-safety --gate` (rules + learned injection classifier).
+# Measured 2026-09-29: tuning recall 1.00, held-out recall 0.938 (15/16), held-out FP 0.079
+# (3/38, adversarially phrased benign + off-topic), golden FP 0.0, PII recall/precision 1.0/1.0.
+safety:
+  tuning_recall: 0.95
+  holdout_recall: 0.85
+  holdout_fpr: 0.10
+  golden_fpr: 0.02
+  pii_recall: 0.95
+  pii_precision: 0.95
