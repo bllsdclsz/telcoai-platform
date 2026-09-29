@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     # to the model's NO_ANSWER instruction (second layer). See support-rag/README.md.
     min_retrieval_score: float = 0.78
 
+    # Human-in-the-loop actions: pending requests the assistant proposes; None disables actions.
+    actions_db: Path | None = Path("data/actions.db")
+    # Shared secret for the agent API (approve/reject); None disables the agent endpoints.
+    agent_token: str | None = None
+
     # Request tracing / audit log (one MLflow trace per question); None disables tracing.
     trace_mlflow_uri: str | None = None
     trace_experiment: str = "support-assistant-traces"

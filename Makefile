@@ -53,6 +53,7 @@ rag-eval:           ## retrieval + safety evaluation gates (support-rag)
 rag-eval-gen:       ## answer-quality gate with local LLMs + judge (before prompt/model changes)
 	uv run rag calibrate-judge
 	uv run rag eval-generation --gate
+	uv run rag eval-actions --gate
 
 monitor:            ## Prefect drift check on recent predictions; retrains on drift
 	uv run churn monitor

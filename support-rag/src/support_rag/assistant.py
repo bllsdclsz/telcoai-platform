@@ -4,11 +4,19 @@ import re
 import time
 import uuid
 from dataclasses import dataclass, field, replace
-from typing import Literal
+from typing import Any, Literal
 
+from support_rag.actions import (
+    CREATED,
+    DUPLICATE,
+    GOODWILL_TOOL,
+    TOOL_INSTRUCTIONS,
+    ActionStore,
+    propose_goodwill_credit,
+)
 from support_rag.guardrails import CANARY, detect_injection, redact_pii, unsupported_numbers
 from support_rag.injection_model import InjectionClassifier
-from support_rag.llm import ChatModel
+from support_rag.llm import ChatModel, Completion
 from support_rag.prompts import PromptTemplate
 from support_rag.retrieve import Hit, Retriever
 from support_rag.tracing import NOOP_TRACER, Tracer
@@ -48,6 +56,9 @@ Reason = Literal[
     "blocked_input",  # prompt-injection attempt, never sent to the model
     "blocked_output",  # the answer leaked the system prompt
     "ungrounded",  # no valid citation, or numbers not found in the cited sources
+    "action_proposed",  # a pending action was filed for a human agent
+    "action_duplicate",  # the customer already has an open request
+    "action_invalid",  # the model's tool call failed validation
 ]
 
 
@@ -79,6 +90,7 @@ class Answer:
     question: str = ""  # redacted: safe to log and trace
     request_id: str = ""
     total_ms: float = 0.0
+    action_id: str = ""
 
     @property
     def answered(self) -> bool:
@@ -118,19 +130,27 @@ class Assistant:
         max_tokens: int = 400,
         injection_classifier: InjectionClassifier | None = None,
         tracer: Tracer = NOOP_TRACER,
+        actions: ActionStore | None = None,
     ) -> None:
         self.retriever, self.llm, self.prompt = retriever, llm, prompt
         self.top_k, self.min_score = top_k, min_score
         self.temperature, self.max_tokens = temperature, max_tokens
         self.injection_classifier = injection_classifier
         self.tracer = tracer
+        self.actions = actions
 
-    def ask(self, question: str, lang: str, request_id: str | None = None) -> Answer:
+    def ask(
+        self,
+        question: str,
+        lang: str,
+        request_id: str | None = None,
+        customer_id: str | None = None,
+    ) -> Answer:
         """Answer one question; with tracing on, this is one MLflow trace (the audit record)."""
         request_id = request_id or str(uuid.uuid4())
         start = time.perf_counter()
         with self.tracer.span("support_answer", "CHAIN") as root:
-            answer = self._answer(question, lang)
+            answer = self._answer(question, lang, request_id, customer_id)
             answer = replace(
                 answer,
                 request_id=request_id,
@@ -142,8 +162,10 @@ class Assistant:
             self.tracer.tag_trace(request_id, audit_tags(answer), answer.question, answer.text)
         return answer
 
-    def _answer(self, question: str, lang: str) -> Answer:
+    def _answer(self, question: str, lang: str, request_id: str, customer_id: str | None) -> Answer:
         tracer = self.tracer
+        # Actions are offered only to an identified customer and when an action store exists.
+        tools_on = bool(customer_id) and self.actions is not None
         # Input guards: redact personal data first, so it reaches neither the model nor logs.
         with tracer.span("input_guards", "GUARDRAIL") as span:
             redaction = redact_pii(question.strip())
@@ -193,36 +215,91 @@ class Assistant:
         with tracer.span(
             "generate", "CHAT_MODEL", {"model": self.llm.model, "prompt": self.prompt.ref}
         ) as span:
-            completion = self.llm.complete(
-                self.prompt.render(
-                    language_name=LANGUAGE_NAMES[lang],
-                    no_answer=NO_ANSWER,
-                    canary=CANARY,
-                    sources=format_sources(sources),
-                    question=question,
-                ),
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-            )
+            # A provider error (timeout, 5xx, malformed tool call) must never crash a customer
+            # conversation: it becomes the fallback answer, recorded as generation_failed.
+            error = ""
+            try:
+                completion = self.llm.complete(
+                    self.prompt.render(
+                        language_name=LANGUAGE_NAMES[lang],
+                        no_answer=NO_ANSWER,
+                        canary=CANARY,
+                        tool_instructions=TOOL_INSTRUCTIONS if tools_on else "",
+                        sources=format_sources(sources),
+                        question=question,
+                    ),
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                    **({"tools": [GOODWILL_TOOL]} if tools_on else {}),
+                )
+            except Exception as exc:
+                error = f"{type(exc).__name__}: {str(exc)[:200]}"
+                completion = Completion("", self.llm.model, 0, 0, 0.0, finish_reason="error")
             span.set_outputs(
                 {
                     "text": completion.text,
                     "input_tokens": completion.input_tokens,
                     "output_tokens": completion.output_tokens,
                     "finish_reason": completion.finish_reason,
+                    "tool_calls": [c.name for c in completion.tool_calls],
                 }
             )
         generated = replace(
             fallback,
+            guard_detail=error,
             model=completion.model,
             latency_ms=completion.latency_ms,
             input_tokens=completion.input_tokens,
             output_tokens=completion.output_tokens,
         )
+        tool_call = next(
+            (c for c in completion.tool_calls if c.name == GOODWILL_TOOL["function"]["name"]), None
+        )
+        if tools_on and tool_call is not None and customer_id and self.actions is not None:
+            return self._propose(generated, tool_call.arguments, question, request_id, customer_id)
         with tracer.span("output_guards", "GUARDRAIL") as span:
             result = self._check_output(generated, completion.text, sources, question)
             span.set_outputs({"reason": result.reason, "detail": result.guard_detail})
         return result
+
+    def _propose(
+        self,
+        generated: Answer,
+        arguments: dict[str, Any],
+        question: str,
+        request_id: str,
+        customer_id: str,
+    ) -> Answer:
+        """The model asked for an action: file it for a human, never execute it."""
+        assert self.actions is not None
+        with self.tracer.span("propose_action", "TOOL", {"arguments": arguments}) as span:
+            proposal = propose_goodwill_credit(
+                self.actions,
+                customer_id=customer_id,
+                arguments=arguments,
+                question=question,
+                request_id=request_id,
+            )
+            span.set_outputs(
+                {
+                    "outcome": proposal.outcome,
+                    "action_id": proposal.action.id if proposal.action else None,
+                    "checks": proposal.action.checks if proposal.action else None,
+                    "problems": proposal.problems,
+                }
+            )
+        lang = generated.lang
+        if proposal.outcome == "invalid" or proposal.action is None:
+            detail = "; ".join(proposal.problems)
+            return replace(generated, reason="action_invalid", guard_detail=detail)
+        template = CREATED if proposal.outcome == "created" else DUPLICATE
+        reason: Reason = "action_proposed" if proposal.outcome == "created" else "action_duplicate"
+        return replace(
+            generated,
+            text=template[lang].format(ref=proposal.action.id),
+            reason=reason,
+            action_id=proposal.action.id,
+        )
 
     def _check_output(
         self, generated: Answer, text: str, sources: list[Source], question: str
@@ -259,4 +336,5 @@ def audit_tags(answer: Answer) -> dict[str, str]:
         "model": answer.model,
         "cited": ",".join(s.article_id for s in answer.cited),
         "total_ms": str(answer.total_ms),
+        "action_id": answer.action_id,
     }
