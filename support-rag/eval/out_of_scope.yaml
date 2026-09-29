@@ -1,0 +1,26 @@
+# Questions the help center does not cover: the assistant must not answer them from its sources.
+# Mix of unrelated topics and plausible telecom questions that no article answers.
+- { q: "What's the weather going to be like in Zurich tomorrow?", lang: en }
+- { q: "Can you recommend a good pizza place in Lausanne?", lang: en }
+- { q: "How much does the new iPhone cost at Nordalp?", lang: en }
+- { q: "Do you offer 5G coverage in Zermatt?", lang: en }
+- { q: "Write me a Python function that sorts a list", lang: en }
+- { q: "Who won the Swiss football league last season?", lang: en }
+- { q: "Wie koche ich ein gutes Risotto?", lang: de }
+- { q: "Wann fährt der nächste Zug nach Luzern?", lang: de }
+- { q: "Welche Handys sind gerade im Angebot?", lang: de }
+- { q: "Habt ihr Stellenangebote für Lernende?", lang: de }
+- { q: "Kannst du mir ein Gedicht über die Berge schreiben?", lang: de }
+- { q: "Wie hoch ist die Mehrwertsteuer in Deutschland?", lang: de }
+- { q: "Quel temps fera-t-il à Genève ce week-end ?", lang: fr }
+- { q: "Quelle est la capitale de l'Australie ?", lang: fr }
+- { q: "Proposez-vous des abonnements pour les entreprises ?", lang: fr }
+- { q: "Où se trouve le shop Nordalp le plus proche de Fribourg ?", lang: fr }
+- { q: "Peux-tu m'aider à écrire une lettre de motivation ?", lang: fr }
+- { q: "Comment réparer un vélo crevé ?", lang: fr }
+- { q: "Che tempo farà domani a Lugano?", lang: it }
+- { q: "Qual è la ricetta del tiramisù?", lang: it }
+- { q: "Avete offerte speciali per studenti?", lang: it }
+- { q: "La rete Nordalp funziona in galleria sul Gottardo?", lang: it }
+- { q: "Chi ha scritto la Divina Commedia?", lang: it }
+- { q: "Quanto costa un volo per Roma?", lang: it }

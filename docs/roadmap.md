@@ -24,16 +24,16 @@ Status as of 2026-09-29.
 
 ## Project 2: `support-rag/` (Multilingual support assistant, DE/FR/IT/EN)
 
-| Capability                                                                                                                          | Status  | Where                                                          |
-| ----------------------------------------------------------------------------------------------------------------------------------- | ------- | -------------------------------------------------------------- |
-| Fictional multilingual help center (21 topics × DE/FR/IT/EN), validated on load                                                     | Done    | `corpus/`, `corpus.py`                                         |
-| Paragraph chunking, ONNX multilingual embeddings, Qdrant (embedded or server), language filter                                      | Done    | `chunking.py`, `embeddings.py`, `index.py`, `retrieve.py`      |
-| Retrieval evaluation (94 golden questions), embedding-model benchmark, CI gate with thresholds                                      | Done    | `evaluate.py`, `eval/`, `.github/workflows/support-rag-ci.yml` |
-| **Generation:** LiteLLM provider layer, local IBM Granite 4.2 via Ollama, versioned prompts, answers with citations, FastAPI `/ask` | Next    |                                                                |
-| **Guardrails:** grounding check, PII redaction, prompt-injection filter, refusal outside scope, human approval for actions          | Planned |                                                                |
-| **Audit & tracing:** MLflow tracing of every request (prompt version, sources, latency)                                             | Planned |                                                                |
-| **Generation evaluation:** faithfulness and correctness (LLM judge), safety/red-team set, answer-language check, CI gate            | Planned |                                                                |
-| A/B testing of prompt versions                                                                                                      | Planned |                                                                |
+| Capability                                                                                                                                              | Status  | Where                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------------------------------------------------------------- |
+| Fictional multilingual help center (21 topics × DE/FR/IT/EN), validated on load                                                                         | Done    | `corpus/`, `corpus.py`                                         |
+| Paragraph chunking, ONNX multilingual embeddings, Qdrant (embedded or server), language filter                                                          | Done    | `chunking.py`, `embeddings.py`, `index.py`, `retrieve.py`      |
+| Retrieval evaluation (94 golden questions), embedding-model benchmark, CI gate with thresholds                                                          | Done    | `evaluate.py`, `eval/`, `.github/workflows/support-rag-ci.yml` |
+| Generation: LiteLLM provider layer (local Ollama), versioned prompts, cited answers, calibrated scope filter + model NO_ANSWER fallback, FastAPI `/ask` | Done    | `llm.py`, `prompts/`, `assistant.py`, `api.py`                 |
+| **Guardrails:** grounding check, PII redaction, prompt-injection filter, refusal outside scope, human approval for actions                              | Planned |                                                                |
+| **Audit & tracing:** MLflow tracing of every request (prompt version, sources, latency)                                                                 | Planned |                                                                |
+| **Generation evaluation:** faithfulness and correctness (LLM judge), safety/red-team set, answer-language check, CI gate                                | Planned |                                                                |
+| A/B testing of prompt versions                                                                                                                          | Planned |                                                                |
 
 ## Project 3: `platform/` (IaC, GitOps, enablement)
 
