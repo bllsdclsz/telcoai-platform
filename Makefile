@@ -1,4 +1,4 @@
-.PHONY: install lint test check mlflow download data train features pipeline promote serve monitor simulate rag-ingest rag-eval rag-eval-gen demo-drift up serve-docker ps down cluster-up cluster-down kubeconfig platform-apply argocd-ui
+.PHONY: install lint test check mlflow download data train features pipeline promote serve monitor simulate rag-ingest rag-eval rag-eval-gen demo-drift up serve-docker ps down cluster-up cluster-down kubeconfig platform-apply argocd-ui registry-ui promote-image
 
 export MLFLOW_DISABLE_AGENT_HINT := 1
 COMPOSE := sh scripts/compose.sh
@@ -100,3 +100,9 @@ platform-apply:     ## Terraform: namespaces, quotas, Argo CD, root app (Argo CD
 argocd-ui:          ## Argo CD on http://localhost:8081 (user admin, password printed first)
 	@$(KUBE) kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo
 	$(KUBE) kubectl -n argocd port-forward svc/argocd-server 8081:80
+
+registry-ui:        ## shared MLflow registry on http://localhost:5001 (then: make promote with CHURN_MLFLOW_TRACKING_URI=http://localhost:5001)
+	$(KUBE) kubectl -n telcoai-registry port-forward svc/mlflow 5001:5000
+
+promote-image:      ## PR that deploys an image: make promote-image ENV=test [SHA=<commit>] | ENV=prod
+	sh platform/scripts/promote-image.sh $(ENV) $(SHA)

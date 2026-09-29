@@ -1,0 +1,10 @@
+# Dev follows the latest image built from main and serves the newest model that passed the gate.
+image:
+  tag: main
+  pullPolicy: Always
+
+api:
+  servingAlias: dev
+
+bootstrapModel:
+  enabled: true

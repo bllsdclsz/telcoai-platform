@@ -1,37 +1,35 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "churn.name" . }}-mlflow
-  labels: {{- include "churn.labels" . | nindent 4 }}
+  name: {{ .Release.Name }}
+  labels: {{- include "registry.labels" . | nindent 4 }}
 spec:
   accessModes: [ReadWriteOnce]
   resources:
     requests:
-      storage: {{ .Values.mlflow.storage }}
+      storage: {{ .Values.storage }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "churn.name" . }}-mlflow
+  name: {{ .Release.Name }}
   labels:
-    {{- include "churn.labels" . | nindent 4 }}
-    app.kubernetes.io/component: mlflow
+    {{- include "registry.labels" . | nindent 4 }}
 spec:
   replicas: 1
   strategy: { type: Recreate } # single writer on a ReadWriteOnce volume
   selector:
     matchLabels:
+      app.kubernetes.io/name: mlflow
       app.kubernetes.io/instance: {{ .Release.Name }}
-      app.kubernetes.io/component: mlflow
   template:
     metadata:
       labels:
-        {{- include "churn.labels" . | nindent 8 }}
-        app.kubernetes.io/component: mlflow
+        {{- include "registry.labels" . | nindent 8 }}
     spec:
       containers:
         - name: mlflow
-          image: {{ .Values.mlflow.image }}
+          image: {{ .Values.image }}
           args:
             - mlflow
             - server
@@ -39,8 +37,8 @@ spec:
             - --port=5000
             - --backend-store-uri=sqlite:////mlflow/mlflow.db
             - --artifacts-destination=/mlflow/artifacts
-            - --allowed-hosts={{ include "churn.name" . }}-mlflow,{{ include "churn.name" . }}-mlflow:5000,localhost,localhost:5000,127.0.0.1:5000
-            - --workers={{ .Values.mlflow.workers }}
+            - --allowed-hosts={{ include "registry.hosts" . }}
+            - --workers={{ .Values.workers }}
           env:
             # The GenAI job runner (scorers, judges) starts 8 more Python processes: 1.8 GiB in
             # total instead of 0.6 GiB. A model registry does not use it.
@@ -61,20 +59,20 @@ spec:
             httpGet: { path: /health, port: http }
             periodSeconds: 20
             timeoutSeconds: 5
-          resources: {{- toYaml .Values.mlflow.resources | nindent 12 }}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts: [{ name: data, mountPath: /mlflow }]
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: {{ include "churn.name" . }}-mlflow
+            claimName: {{ .Release.Name }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "churn.name" . }}-mlflow
-  labels: {{- include "churn.labels" . | nindent 4 }}
+  name: {{ .Release.Name }}
+  labels: {{- include "registry.labels" . | nindent 4 }}
 spec:
   selector:
+    app.kubernetes.io/name: mlflow
     app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/component: mlflow
   ports: [{ name: http, port: 5000, targetPort: http }]

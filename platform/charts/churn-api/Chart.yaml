@@ -1,0 +1,6 @@
+apiVersion: v2
+name: churn-api
+description: Churn prediction API, serving one alias of the shared model registry (TelcoAI platform)
+type: application
+version: 0.2.0
+appVersion: "0.1.0"

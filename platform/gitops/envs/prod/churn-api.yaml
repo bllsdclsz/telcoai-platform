@@ -1,0 +1,7 @@
+# Prod runs only an image that has been in test (checked in CI) and the model a named approver
+# promoted to @prod.
+image:
+  tag: sha-1da36496f7994a4f2a08637c40f78853621d438f
+
+api:
+  servingAlias: prod

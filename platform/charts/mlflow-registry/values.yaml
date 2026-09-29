@@ -1,0 +1,11 @@
+image: ghcr.io/mlflow/mlflow:v3.16.1
+storage: 2Gi
+workers: 2 # uvicorn workers; the default 4 is too many for a small registry
+resources:
+  requests: { cpu: 100m, memory: 768Mi }
+  limits: { cpu: "1", memory: 1Gi }
+# Host headers the server accepts (DNS-rebinding protection). In-cluster clients use the
+# service name; people use a port-forward on 5001 (make registry-ui).
+allowedHosts:
+  - localhost:5001
+  - 127.0.0.1:5001

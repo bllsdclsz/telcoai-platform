@@ -32,7 +32,7 @@ make demo-drift       # simulated drift -> automatic retrain to staging
 On Kubernetes, deployed by Argo CD from this repository ([platform/README.md](platform/README.md)):
 
 ```bash
-make cluster-up platform-apply   # k3d cluster, namespaces with budgets, Argo CD; the dev stack syncs itself
+make cluster-up platform-apply   # k3d cluster, namespaces with budgets, Argo CD; dev/test/prod sync themselves
 make argocd-ui                   # http://localhost:8081
 ```
 

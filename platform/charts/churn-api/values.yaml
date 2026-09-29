@@ -1,0 +1,27 @@
+# Defaults; each environment overrides them in platform/gitops/envs/<env>/churn-api.yaml.
+
+image:
+  repository: ghcr.io/bllsdclsz/telco-churn-api
+  tag: "" # required: test and prod pin an immutable sha-<commit> tag
+  pullPolicy: IfNotPresent
+
+registry:
+  url: http://mlflow.telcoai-registry:5000
+  modelName: telco-churn
+
+api:
+  replicas: 1
+  servingAlias: prod # the API only ever serves the model behind this registry alias
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
+
+# Dev only: if the registry has no @dev model yet, train one. Training
+# registers a model as @dev only when it passes the quality gate; staging and prod are reached
+# only through the human-approved `churn promote`.
+bootstrapModel:
+  enabled: false
+
+ingress:
+  enabled: false
+  host: churn.localhost
